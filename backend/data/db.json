@@ -1,0 +1,565 @@
+{
+  "users": [],
+  "businesses": [
+    {
+      "_id": "biz_89430708c518",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "name": "Hotel Diana",
+      "category": "restaurants-and-food",
+      "subCategory": "Restaurants",
+      "city": "Udupi",
+      "address": "Main Road, Udupi",
+      "description": "Hotel Diana — trusted Restaurants in Udupi.",
+      "contact": {
+        "phone": "9845010000",
+        "whatsapp": "9845010000"
+      },
+      "orderOnline": {
+        "swiggy": "https://www.swiggy.com"
+      },
+      "image": "https://images.unsplash.com/photo-1552566626-52f8b828add9?w=400&q=70",
+      "badge": "featured",
+      "plan": "premium",
+      "planExpiry": "2027-07-26T18:20:03.972Z",
+      "status": "approved",
+      "approvedOnce": true,
+      "verified": true,
+      "unclaimed": false,
+      "rating": 4.8,
+      "reviews": 1200,
+      "views": 0,
+      "leads": 0,
+      "featured": true
+    },
+    {
+      "_id": "biz_53eb17259ee8",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "name": "KMC Hospital",
+      "category": "health-and-hospitals",
+      "subCategory": "Hospitals",
+      "city": "Mangaluru",
+      "address": "Main Road, Mangaluru",
+      "description": "KMC Hospital — trusted Hospitals in Mangaluru.",
+      "contact": {
+        "phone": "9845010001",
+        "whatsapp": "9845010001"
+      },
+      "orderOnline": null,
+      "image": "https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=400&q=70",
+      "badge": "premium",
+      "plan": "premium",
+      "planExpiry": "2027-07-26T18:20:03.972Z",
+      "status": "approved",
+      "approvedOnce": true,
+      "verified": true,
+      "unclaimed": false,
+      "rating": 4.6,
+      "reviews": 980,
+      "views": 100,
+      "leads": 0,
+      "featured": false
+    },
+    {
+      "_id": "biz_4b093feb5c5e",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "name": "Sagar Electronics",
+      "category": "shopping-and-retail",
+      "subCategory": "Electronics",
+      "city": "Udupi",
+      "address": "Main Road, Udupi",
+      "description": "Sagar Electronics — trusted Electronics in Udupi.",
+      "contact": {
+        "phone": "9845010002",
+        "whatsapp": "9845010002"
+      },
+      "orderOnline": null,
+      "image": "https://images.unsplash.com/photo-1550009158-9a375e54d588?w=400&q=70",
+      "badge": "verified",
+      "plan": "free",
+      "planExpiry": null,
+      "status": "approved",
+      "approvedOnce": true,
+      "verified": true,
+      "unclaimed": false,
+      "rating": 4.5,
+      "reviews": 430,
+      "views": 200,
+      "leads": 0,
+      "featured": false
+    },
+    {
+      "_id": "biz_8eb153d072ca",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "name": "Trisha Beauty Salon",
+      "category": "beauty-and-wellness",
+      "subCategory": "Beauty & Wellness",
+      "city": "Mangaluru",
+      "address": "Main Road, Mangaluru",
+      "description": "Trisha Beauty Salon — trusted Beauty & Wellness in Mangaluru.",
+      "contact": {
+        "phone": "9845010003",
+        "whatsapp": "9845010003"
+      },
+      "orderOnline": null,
+      "image": "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&q=70",
+      "badge": "featured",
+      "plan": "premium",
+      "planExpiry": "2027-07-26T18:20:03.972Z",
+      "status": "approved",
+      "approvedOnce": true,
+      "verified": true,
+      "unclaimed": false,
+      "rating": 4.7,
+      "reviews": 620,
+      "views": 300,
+      "leads": 0,
+      "featured": true
+    },
+    {
+      "_id": "biz_787f8ffe8632",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "name": "Coastal Builders",
+      "category": "home-and-construction",
+      "subCategory": "Home & Construction",
+      "city": "Udupi",
+      "address": "Main Road, Udupi",
+      "description": "Coastal Builders — trusted Home & Construction in Udupi.",
+      "contact": {
+        "phone": "9845010004",
+        "whatsapp": "9845010004"
+      },
+      "orderOnline": null,
+      "image": "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=400&q=70",
+      "badge": "premium",
+      "plan": "premium",
+      "planExpiry": "2027-07-26T18:20:03.972Z",
+      "status": "approved",
+      "approvedOnce": true,
+      "verified": true,
+      "unclaimed": true,
+      "rating": 4.6,
+      "reviews": 310,
+      "views": 400,
+      "leads": 0,
+      "featured": false
+    }
+  ],
+  "categories": [
+    {
+      "_id": "cat_e021a2383437",
+      "createdAt": "2026-09-29T18:20:03.970Z",
+      "updatedAt": "2026-09-29T18:20:03.971Z",
+      "name": "Restaurants & Food",
+      "slug": "restaurants-and-food",
+      "icon": "🍽️",
+      "color": "#FF6600",
+      "subs": [
+        "Pure Veg Restaurants",
+        "Non-Veg Dhabas",
+        "Cafes",
+        "Biryani Houses"
+      ],
+      "order": 0,
+      "active": true
+    },
+    {
+      "_id": "cat_b6c009461e77",
+      "createdAt": "2026-09-29T18:20:03.971Z",
+      "updatedAt": "2026-09-29T18:20:03.971Z",
+      "name": "Hotels & Stay",
+      "slug": "hotels-and-stay",
+      "icon": "🛏️",
+      "color": "#0055FF",
+      "subs": [
+        "Luxury Hotels",
+        "Budget Stays",
+        "Resorts",
+        "PGs & Hostels"
+      ],
+      "order": 1,
+      "active": true
+    },
+    {
+      "_id": "cat_8264e70672de",
+      "createdAt": "2026-09-29T18:20:03.971Z",
+      "updatedAt": "2026-09-29T18:20:03.971Z",
+      "name": "Health & Hospitals",
+      "slug": "health-and-hospitals",
+      "icon": "🏥",
+      "color": "#dc2626",
+      "subs": [
+        "General Hospitals",
+        "Dentists",
+        "Pharmacies",
+        "Clinics"
+      ],
+      "order": 2,
+      "active": true
+    },
+    {
+      "_id": "cat_c742cf92a5bd",
+      "createdAt": "2026-09-29T18:20:03.971Z",
+      "updatedAt": "2026-09-29T18:20:03.971Z",
+      "name": "Education & Training",
+      "slug": "education-and-training",
+      "icon": "🎓",
+      "color": "#7c3aed",
+      "subs": [
+        "Schools",
+        "Colleges",
+        "Coaching Centers",
+        "Tutors"
+      ],
+      "order": 3,
+      "active": true
+    },
+    {
+      "_id": "cat_e658eb378b49",
+      "createdAt": "2026-09-29T18:20:03.971Z",
+      "updatedAt": "2026-09-29T18:20:03.971Z",
+      "name": "Home & Construction",
+      "slug": "home-and-construction",
+      "icon": "🏠",
+      "color": "#f97316",
+      "subs": [
+        "Architects",
+        "Builders",
+        "Interior Designers",
+        "Plumbers"
+      ],
+      "order": 4,
+      "active": true
+    },
+    {
+      "_id": "cat_030ae7703c89",
+      "createdAt": "2026-09-29T18:20:03.971Z",
+      "updatedAt": "2026-09-29T18:20:03.971Z",
+      "name": "Automotive & Transport",
+      "slug": "automotive-and-transport",
+      "icon": "🚗",
+      "color": "#0055FF",
+      "subs": [
+        "Car Rentals",
+        "Bike Showrooms",
+        "Auto Repair",
+        "Taxi Services"
+      ],
+      "order": 5,
+      "active": true
+    },
+    {
+      "_id": "cat_0c6239f6dfec",
+      "createdAt": "2026-09-29T18:20:03.971Z",
+      "updatedAt": "2026-09-29T18:20:03.971Z",
+      "name": "Shopping & Retail",
+      "slug": "shopping-and-retail",
+      "icon": "🛍️",
+      "color": "#db2777",
+      "subs": [
+        "Supermarkets",
+        "Clothing Stores",
+        "Electronics",
+        "Malls"
+      ],
+      "order": 6,
+      "active": true
+    },
+    {
+      "_id": "cat_9ffcebf04dd7",
+      "createdAt": "2026-09-29T18:20:03.971Z",
+      "updatedAt": "2026-09-29T18:20:03.971Z",
+      "name": "Beauty & Wellness",
+      "slug": "beauty-and-wellness",
+      "icon": "🌿",
+      "color": "#16a34a",
+      "subs": [
+        "Salons",
+        "Spas",
+        "Gyms",
+        "Yoga Centers"
+      ],
+      "order": 7,
+      "active": true
+    },
+    {
+      "_id": "cat_a30be06da318",
+      "createdAt": "2026-09-29T18:20:03.971Z",
+      "updatedAt": "2026-09-29T18:20:03.971Z",
+      "name": "Professional Services",
+      "slug": "professional-services",
+      "icon": "💼",
+      "color": "#0055FF",
+      "subs": [
+        "Lawyers",
+        "CA & Accountants",
+        "Consultants",
+        "IT Services"
+      ],
+      "order": 8,
+      "active": true
+    },
+    {
+      "_id": "cat_569c79b85adf",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "name": "Events & Entertainment",
+      "slug": "events-and-entertainment",
+      "icon": "⭐",
+      "color": "#7c3aed",
+      "subs": [
+        "Wedding Planners",
+        "Banquet Halls",
+        "Photographers",
+        "Caterers"
+      ],
+      "order": 9,
+      "active": true
+    },
+    {
+      "_id": "cat_cd0cb3430841",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "name": "Real Estate",
+      "slug": "real-estate",
+      "icon": "🏢",
+      "color": "#0055FF",
+      "subs": [
+        "Real Estate Agents",
+        "Commercial Properties",
+        "Flats for Rent",
+        "Land Brokers"
+      ],
+      "order": 10,
+      "active": true
+    }
+  ],
+  "ads": [
+    {
+      "_id": "ad_28f94bc728c3",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "type": "top_banner",
+      "title": "SRI GANESH MOTORS",
+      "subtitle": "Ride the new style — Wide Range | Best Offers | Easy Finance",
+      "cta": "BOOK NOW",
+      "link": "/search?q=scooter",
+      "bg": "linear-gradient(90deg,#7f1d1d,#dc2626)",
+      "status": "approved",
+      "createdBy": "admin"
+    },
+    {
+      "_id": "ad_7626c3e2bed5",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "type": "top_banner",
+      "title": "MANIPAL STAY PG",
+      "subtitle": "Fully furnished PGs near MIT/MAHE — Wi-Fi, food, laundry",
+      "cta": "ENQUIRE",
+      "link": "/category/property-and-rentals",
+      "bg": "linear-gradient(90deg,#0033aa,#0055FF)",
+      "status": "approved",
+      "createdBy": "admin"
+    },
+    {
+      "_id": "ad_266821a81c45",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "type": "middle_banner",
+      "title": "COASTAL TMT",
+      "subtitle": "Stronger Foundations. Brighter Tomorrow.",
+      "cta": "KNOW MORE",
+      "link": "/advertise",
+      "bg": "linear-gradient(90deg,#eff6ff,#dbeafe)",
+      "status": "approved",
+      "createdBy": "admin"
+    },
+    {
+      "_id": "ad_16636d30b23e",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "type": "promo",
+      "title": "Make Your Home More Beautiful",
+      "subtitle": "Furniture | Interiors | Home Decor",
+      "cta": "EXPLORE NOW",
+      "link": "/search?q=interior",
+      "image": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=70",
+      "status": "approved",
+      "createdBy": "admin"
+    },
+    {
+      "_id": "ad_4f94361f7b0d",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "type": "hero_video",
+      "title": "Discover Udupi & Mangaluru",
+      "subtitle": "A City of Opportunities",
+      "youtubeUrl": "https://www.youtube.com/watch?v=ScMzIvxBSi4",
+      "status": "approved",
+      "createdBy": "admin"
+    }
+  ],
+  "payments": [],
+  "leads": [],
+  "claims": [],
+  "offers": [
+    {
+      "_id": "off_fad72c5540ab",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "title": "FLAT 50% OFF",
+      "subtitle": "On all services",
+      "businessName": "Sagar Spa & Salon",
+      "city": "Manipal",
+      "code": "PVRS50",
+      "expiry": "Valid till 31 Oct 2026",
+      "active": true
+    },
+    {
+      "_id": "off_90fc8d5e7c3e",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "title": "BUY 1 GET 1",
+      "subtitle": "Premium meals",
+      "businessName": "Hotel Supreme",
+      "city": "Udupi",
+      "code": "SUPREMEBOGO",
+      "expiry": "Weekends",
+      "active": true
+    }
+  ],
+  "blogs": [
+    {
+      "_id": "blo_51382f061438",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "title": "Top 10 Student PGs near Manipal",
+      "excerpt": "How to pick a safe, affordable PG near MIT/MAHE.",
+      "body": "Check the owner's registration, visit in person, verify food & Wi-Fi...",
+      "published": true
+    }
+  ],
+  "videos": [
+    {
+      "_id": "vid_6eb4d0f9be6e",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "title": "Best Restaurants in Udupi",
+      "url": "https://www.youtube.com/watch?v=ScMzIvxBSi4",
+      "active": true
+    },
+    {
+      "_id": "vid_375c273570da",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "title": "Top Hospitals in Mangaluru",
+      "url": "https://www.youtube.com/watch?v=ScMzIvxBSi4",
+      "active": true
+    },
+    {
+      "_id": "vid_75eda6198823",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "title": "Home Construction Ideas",
+      "url": "https://www.youtube.com/watch?v=ScMzIvxBSi4",
+      "active": true
+    },
+    {
+      "_id": "vid_7dcb0085bc73",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "title": "Beauty Tips & Care",
+      "url": "https://www.youtube.com/watch?v=ScMzIvxBSi4",
+      "active": true
+    },
+    {
+      "_id": "vid_4209224318b2",
+      "createdAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "title": "Local Events & Celebrations",
+      "url": "https://www.youtube.com/watch?v=ScMzIvxBSi4",
+      "active": true
+    }
+  ],
+  "notifications": [],
+  "audit": [],
+  "settings": {
+    "siteName": "PVRS HUB",
+    "cities": [
+      "Udupi",
+      "Manipal",
+      "Malpe",
+      "Mangaluru",
+      "Kundapura",
+      "Karkala"
+    ],
+    "popularSearches": [
+      "Restaurants",
+      "Student PGs",
+      "Scooter Rentals",
+      "Pharmacies",
+      "Electricians",
+      "Wedding Halls"
+    ],
+    "hero": {
+      "title": "Find Local Businesses Near You",
+      "subtitle": "Search. Connect. Grow. Udupi | Mangaluru | Beyond."
+    },
+    "stats": {
+      "businesses": "5,000+",
+      "customers": "100,000+",
+      "verified": "Verified",
+      "support": "Local"
+    },
+    "cta": {
+      "vendorTitle": "Grow Your Local Sales — List Your Business for FREE Today!",
+      "vendorText": "Get discovered by students, tourists & locals across coastal Karnataka.",
+      "advertiseTitle": "Advertise with PVRS HUB",
+      "advertiseText": "Reach thousands of local customers through banners, featured listings and video ads."
+    },
+    "locationBanner": {
+      "title": "Explore Udupi & Mangaluru",
+      "subtitle": "Great Businesses. Greater People.",
+      "image": "https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=1200&q=70"
+    },
+    "social": {
+      "facebook": "#",
+      "instagram": "#",
+      "youtube": "#",
+      "linkedin": "#"
+    },
+    "apps": {
+      "android": "#",
+      "ios": "#"
+    },
+    "pages": {
+      "disclaimer": {
+        "title": "Website Disclaimer",
+        "body": "PVRS HUB is an online intermediary directory under Section 79 of the Information Technology Act, 2000. We do not own, operate or endorse any listed business.\n\nTHREE-POSSIBILITY RULE (Medical & Healthcare listings): For any doctor, clinic, pharmacy, lab or nursing listing, visitors must assume that (1) the information may be accurate, (2) the information may be outdated, or (3) the information may be incorrect. Always verify registration numbers, qualifications, licence labels and medicine labels directly with the provider and the relevant medical council before relying on them. This website does not provide medical advice.\n\nAll ratings, prices, offers and timings are provided by vendors and may change without notice. Please double-check all details, labels and licences before making any payment or visit."
+      },
+      "privacy": {
+        "title": "Privacy Policy",
+        "body": "What we collect: your 10-digit mobile number (for OTP login via Google Firebase), OTP verification logs, name, approximate GPS/browser location (only when you allow location access, to show nearby businesses), search queries, and click events (Call/WhatsApp) on listings.\n\nVendors additionally submit business details and verification documents (Trade License / FSSAI / KMC certificates) which are stored privately and viewed only by the Administrator.\n\nPayments are processed by Razorpay; we never store card, UPI or bank credentials.\n\nWe do not sell personal data. Data is retained while your account is active and deleted on request to the Grievance Officer."
+      },
+      "terms": {
+        "title": "Business Terms of Use",
+        "body": "1. Vendors are solely and fully liable for the accuracy, legality and genuineness of all information, images, videos, prices and offers they publish.\n2. Every new listing and every future edit (phone numbers, categories, description, banners, video links) is held in a Pending Review queue and published only after manual approval by the Administrator.\n3. Vendors must keep government licences valid. Expired licences lead to automatic suspension of the listing.\n4. Free plan: one profile image; Call/WhatsApp buttons hidden. Premium plan: contact buttons, gallery, banner and video embeds.\n5. Subscription and ad fees are non-refundable once the service is live.\n6. PVRS HUB may remove any listing without notice upon a valid takedown request or legal order."
+      },
+      "grievance": {
+        "title": "Grievance Officer",
+        "body": "In accordance with the Information Technology Act, 2000 and the IT (Intermediary Guidelines) Rules, 2021, complaints and takedown requests may be sent to:\n\nGrievance Officer — PVRS HUB\nEmail: legal@yourdomain.in\nResponse: acknowledgement within 24 hours, resolution within 15 days."
+      },
+      "about": {
+        "title": "About PVRS HUB",
+        "body": "PVRS HUB is a verified local business directory for Udupi, Manipal, Malpe and Mangaluru — built for students, tourists and residents of coastal Karnataka."
+      }
+    },
+    "searchStats": {
+      "food-and-dining": 3
+    }
+  }
+}
