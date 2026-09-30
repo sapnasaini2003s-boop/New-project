@@ -5,7 +5,7 @@ const path = require('path');
 
 require('./src/seed')(false); // seeds only when DB is empty
 const app = express();
-app.use(cors({ origin: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : true }));
+app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads/public', express.static(path.join(__dirname, 'uploads', 'public'), { maxAge: '7d' }));
