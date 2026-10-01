@@ -3,13 +3,12 @@ const router = require('express').Router();
 const path = require('path');
 const fs = require('fs');
 const db = require('../db');
-const { auth, role, upload, fileUrl, notify, parseJSON, UP, isPremium } = require('../util');
+const { auth, role, upload, fileUrl, sendStored, notify, parseJSON, UP, isPremium } = require('../util');
 const { runExpiryJob } = require('../jobs');
 
 // Private document viewer (token via ?token= so it opens in new tab)
-router.get('/files/private/:name', auth(), role('admin'), (req, res) => {
-  const f = path.join(UP, 'private', path.basename(req.params.name));
-  fs.existsSync(f) ? res.sendFile(f) : res.status(404).send('Not found');
+router.get('/files/private/:name', auth(), role('admin'), (req, res, next) => {
+  sendStored('private', req.params.name, res).catch(next);
 });
 
 router.use(auth(), role('admin'));
@@ -33,6 +32,7 @@ function queueCounts() {
     vendors: db.find('users', (u) => u.status === 'pending').length,
     ads: db.find('ads', (a) => a.status === 'pending').length,
     claims: db.find('claims', (c) => c.status === 'pending').length,
+    reviews: db.find('reviews', (r) => r.status === 'pending').length,
   };
 }
 
@@ -45,6 +45,7 @@ router.get('/queue', (req, res) => {
     vendors: db.find('users', (u) => u.status === 'pending'),
     ads: db.find('ads', (a) => a.status === 'pending'),
     claims: db.find('claims', (c) => c.status === 'pending'),
+    reviews: db.find('reviews', (r) => r.status === 'pending'),
   });
 });
 
@@ -138,6 +139,21 @@ router.put('/claims/:id/:action', (req, res) => {
   } else { db.update('claims', c._id, { status: 'rejected' }); notify(c.userId, 'Claim rejected', c.businessName); }
   res.json({ message: 'Done' });
 });
+
+// ---- reviews moderation ----
+router.get('/reviews', (req, res) => res.json(db.all('reviews').slice().reverse()));
+router.put('/reviews/:id/:action', (req, res) => {
+  const r = db.get('reviews', req.params.id); if (!r) return res.status(404).json({ message: 'Not found' });
+  const approve = req.params.action === 'approve';
+  if (approve && r.status !== 'approved') {
+    const b = db.get('businesses', r.businessId);
+    if (b) { const n = (b.reviews || 0) + 1; db.update('businesses', b._id, { reviews: n, rating: Math.round((((b.rating || 0) * (n - 1)) + r.rating) / n * 10) / 10 }); }
+  }
+  db.update('reviews', r._id, { status: approve ? 'approved' : 'rejected' });
+  res.json({ message: approve ? 'Review published' : 'Review rejected' });
+});
+router.delete('/reviews/:id', (req, res) => res.json({ ok: db.remove('reviews', req.params.id) }));
+router.get('/enquiries', (req, res) => res.json(db.all('enquiries').slice().reverse()));
 
 // ---- categories ----
 router.post('/categories', (req, res) => {

@@ -123,5 +123,60 @@ router.post('/contact', (req, res) => {
   res.json({ message: 'Thanks! Our team will contact you soon.' });
 });
 
+
+// ---------- Search suggestions ----------
+router.get('/suggest', (req, res) => {
+  const t = String(req.query.q || '').toLowerCase().trim(); if (t.length < 2) return res.json([]);
+  const out = [];
+  for (const c of db.all('categories')) {
+    if (c.name.toLowerCase().includes(t)) out.push({ type: 'category', label: c.name, icon: c.icon, href: `/category/${c.slug}` });
+    for (const s of c.subs || []) if (s.toLowerCase().includes(t)) out.push({ type: 'sub', label: s, icon: c.icon, href: `/category/${c.slug}?sub=${encodeURIComponent(s)}` });
+  }
+  for (const b of db.all('businesses')) if (live(b) && b.name.toLowerCase().includes(t)) out.push({ type: 'business', label: b.name, sub: b.city, href: `/business/${b._id}` });
+  res.json(out.slice(0, 10));
+});
+
+// ---------- Reviews (go live after admin approval) ----------
+router.get('/businesses/:id/reviews', (req, res) => {
+  res.json(db.find('reviews', (r) => r.businessId === req.params.id && r.status === 'approved').slice(-50).reverse()
+    .map((r) => ({ _id: r._id, name: r.name, rating: r.rating, text: r.text, createdAt: r.createdAt })));
+});
+router.post('/reviews', auth(), (req, res) => {
+  const { businessId, rating, text } = req.body; const b = db.get('businesses', businessId);
+  const n = Number(rating);
+  if (!b || !live(b)) return res.status(404).json({ message: 'Listing not found' });
+  if (!(n >= 1 && n <= 5)) return res.status(400).json({ message: 'Rating must be 1–5' });
+  if (b.ownerId === req.user._id) return res.status(400).json({ message: 'You cannot review your own business' });
+  if (db.find('reviews', (r) => r.businessId === businessId && r.userId === req.user._id && r.status !== 'rejected').length)
+    return res.status(400).json({ message: 'You have already reviewed this business' });
+  db.insert('reviews', { businessId, businessName: b.name, userId: req.user._id, name: req.user.name || 'Customer', phone: req.user.phone, rating: n, text: String(text || '').slice(0, 1000), status: 'pending' }, 'rev');
+  res.status(201).json({ message: 'Thanks! Your review will appear after moderation.' });
+});
+
+// ---------- Enquiries (lead form — works on every plan) ----------
+router.post('/enquiries', auth(false), (req, res) => {
+  const { businessId, name, phone, message } = req.body; const b = db.get('businesses', businessId);
+  if (!b || !live(b)) return res.status(404).json({ message: 'Listing not found' });
+  if (!name || !/^[6-9]\d{9}$/.test(phone || '')) return res.status(400).json({ message: 'Enter your name and a valid 10-digit mobile' });
+  db.insert('enquiries', { businessId, businessName: b.name, ownerId: b.ownerId || null, name, phone, message: String(message || '').slice(0, 1000), userId: req.user?._id, status: 'new' }, 'enq');
+  db.update('businesses', b._id, { leads: (b.leads || 0) + 1 });
+  if (b.ownerId) {
+    notify(b.ownerId, 'New enquiry', `${name} enquired about ${b.name}`, 'inbox');
+    if (isPremium(b)) sendWhatsApp(b.contact?.whatsapp || b.contact?.phone, `PVRS HUB: New enquiry for "${b.name}" from ${name}. Check your dashboard.`);
+  }
+  res.status(201).json({ message: 'Enquiry sent! The business will contact you soon.' });
+});
+
+// ---------- Favourites ----------
+router.get('/favorites', auth(), (req, res) => {
+  const ids = db.find('favorites', (f) => f.userId === req.user._id).map((f) => f.businessId);
+  res.json(db.all('businesses').filter((b) => ids.includes(b._id) && live(b)).map((b) => publicBiz(b)));
+});
+router.post('/favorites/:id', auth(), (req, res) => {
+  const ex = db.find('favorites', (f) => f.userId === req.user._id && f.businessId === req.params.id)[0];
+  if (ex) { db.remove('favorites', ex._id); return res.json({ saved: false }); }
+  db.insert('favorites', { userId: req.user._id, businessId: req.params.id }, 'fav'); res.json({ saved: true });
+});
+
 module.exports = router;
 module.exports.sendWhatsApp = sendWhatsApp;

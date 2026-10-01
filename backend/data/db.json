@@ -1,4 +1,79 @@
 {
+  "settings": {
+    "siteName": "PVRS HUB",
+    "cities": [
+      "Udupi",
+      "Manipal",
+      "Malpe",
+      "Mangaluru",
+      "Kundapura",
+      "Karkala"
+    ],
+    "popularSearches": [
+      "Restaurants",
+      "Student PGs",
+      "Scooter Rentals",
+      "Pharmacies",
+      "Electricians",
+      "Wedding Halls"
+    ],
+    "hero": {
+      "title": "Find Local Businesses Near You",
+      "subtitle": "Search. Connect. Grow. Udupi | Mangaluru | Beyond."
+    },
+    "stats": {
+      "businesses": "5,000+",
+      "customers": "100,000+",
+      "verified": "Verified",
+      "support": "Local"
+    },
+    "cta": {
+      "vendorTitle": "Grow Your Local Sales — List Your Business for FREE Today!",
+      "vendorText": "Get discovered by students, tourists & locals across coastal Karnataka.",
+      "advertiseTitle": "Advertise with PVRS HUB",
+      "advertiseText": "Reach thousands of local customers through banners, featured listings and video ads."
+    },
+    "locationBanner": {
+      "title": "Explore Udupi & Mangaluru",
+      "subtitle": "Great Businesses. Greater People.",
+      "image": "https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=1200&q=70"
+    },
+    "social": {
+      "facebook": "#",
+      "instagram": "#",
+      "youtube": "#",
+      "linkedin": "#"
+    },
+    "apps": {
+      "android": "#",
+      "ios": "#"
+    },
+    "pages": {
+      "disclaimer": {
+        "title": "Website Disclaimer",
+        "body": "PVRS HUB is an online intermediary directory under Section 79 of the Information Technology Act, 2000. We do not own, operate or endorse any listed business.\n\nTHREE-POSSIBILITY RULE (Medical & Healthcare listings): For any doctor, clinic, pharmacy, lab or nursing listing, visitors must assume that (1) the information may be accurate, (2) the information may be outdated, or (3) the information may be incorrect. Always verify registration numbers, qualifications, licence labels and medicine labels directly with the provider and the relevant medical council before relying on them. This website does not provide medical advice.\n\nAll ratings, prices, offers and timings are provided by vendors and may change without notice. Please double-check all details, labels and licences before making any payment or visit."
+      },
+      "privacy": {
+        "title": "Privacy Policy",
+        "body": "What we collect: your 10-digit mobile number (for OTP login via Google Firebase), OTP verification logs, name, approximate GPS/browser location (only when you allow location access, to show nearby businesses), search queries, and click events (Call/WhatsApp) on listings.\n\nVendors additionally submit business details and verification documents (Trade License / FSSAI / KMC certificates) which are stored privately and viewed only by the Administrator.\n\nPayments are processed by Razorpay; we never store card, UPI or bank credentials.\n\nWe do not sell personal data. Data is retained while your account is active and deleted on request to the Grievance Officer."
+      },
+      "terms": {
+        "title": "Business Terms of Use",
+        "body": "1. Vendors are solely and fully liable for the accuracy, legality and genuineness of all information, images, videos, prices and offers they publish.\n2. Every new listing and every future edit (phone numbers, categories, description, banners, video links) is held in a Pending Review queue and published only after manual approval by the Administrator.\n3. Vendors must keep government licences valid. Expired licences lead to automatic suspension of the listing.\n4. Free plan: one profile image; Call/WhatsApp buttons hidden. Premium plan: contact buttons, gallery, banner and video embeds.\n5. Subscription and ad fees are non-refundable once the service is live.\n6. PVRS HUB may remove any listing without notice upon a valid takedown request or legal order."
+      },
+      "grievance": {
+        "title": "Grievance Officer",
+        "body": "In accordance with the Information Technology Act, 2000 and the IT (Intermediary Guidelines) Rules, 2021, complaints and takedown requests may be sent to:\n\nGrievance Officer — PVRS HUB\nEmail: legal@yourdomain.in\nResponse: acknowledgement within 24 hours, resolution within 15 days."
+      },
+      "about": {
+        "title": "About PVRS HUB",
+        "body": "PVRS HUB is a verified local business directory for Udupi, Manipal, Malpe and Mangaluru — built for students, tourists and residents of coastal Karnataka."
+      }
+    },
+    "searchStats": {
+      "food-and-dining": 3
+    }
+  },
   "users": [],
   "businesses": [
     {
@@ -487,79 +562,7 @@
   ],
   "notifications": [],
   "audit": [],
-  "settings": {
-    "siteName": "PVRS HUB",
-    "cities": [
-      "Udupi",
-      "Manipal",
-      "Malpe",
-      "Mangaluru",
-      "Kundapura",
-      "Karkala"
-    ],
-    "popularSearches": [
-      "Restaurants",
-      "Student PGs",
-      "Scooter Rentals",
-      "Pharmacies",
-      "Electricians",
-      "Wedding Halls"
-    ],
-    "hero": {
-      "title": "Find Local Businesses Near You",
-      "subtitle": "Search. Connect. Grow. Udupi | Mangaluru | Beyond."
-    },
-    "stats": {
-      "businesses": "5,000+",
-      "customers": "100,000+",
-      "verified": "Verified",
-      "support": "Local"
-    },
-    "cta": {
-      "vendorTitle": "Grow Your Local Sales — List Your Business for FREE Today!",
-      "vendorText": "Get discovered by students, tourists & locals across coastal Karnataka.",
-      "advertiseTitle": "Advertise with PVRS HUB",
-      "advertiseText": "Reach thousands of local customers through banners, featured listings and video ads."
-    },
-    "locationBanner": {
-      "title": "Explore Udupi & Mangaluru",
-      "subtitle": "Great Businesses. Greater People.",
-      "image": "https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=1200&q=70"
-    },
-    "social": {
-      "facebook": "#",
-      "instagram": "#",
-      "youtube": "#",
-      "linkedin": "#"
-    },
-    "apps": {
-      "android": "#",
-      "ios": "#"
-    },
-    "pages": {
-      "disclaimer": {
-        "title": "Website Disclaimer",
-        "body": "PVRS HUB is an online intermediary directory under Section 79 of the Information Technology Act, 2000. We do not own, operate or endorse any listed business.\n\nTHREE-POSSIBILITY RULE (Medical & Healthcare listings): For any doctor, clinic, pharmacy, lab or nursing listing, visitors must assume that (1) the information may be accurate, (2) the information may be outdated, or (3) the information may be incorrect. Always verify registration numbers, qualifications, licence labels and medicine labels directly with the provider and the relevant medical council before relying on them. This website does not provide medical advice.\n\nAll ratings, prices, offers and timings are provided by vendors and may change without notice. Please double-check all details, labels and licences before making any payment or visit."
-      },
-      "privacy": {
-        "title": "Privacy Policy",
-        "body": "What we collect: your 10-digit mobile number (for OTP login via Google Firebase), OTP verification logs, name, approximate GPS/browser location (only when you allow location access, to show nearby businesses), search queries, and click events (Call/WhatsApp) on listings.\n\nVendors additionally submit business details and verification documents (Trade License / FSSAI / KMC certificates) which are stored privately and viewed only by the Administrator.\n\nPayments are processed by Razorpay; we never store card, UPI or bank credentials.\n\nWe do not sell personal data. Data is retained while your account is active and deleted on request to the Grievance Officer."
-      },
-      "terms": {
-        "title": "Business Terms of Use",
-        "body": "1. Vendors are solely and fully liable for the accuracy, legality and genuineness of all information, images, videos, prices and offers they publish.\n2. Every new listing and every future edit (phone numbers, categories, description, banners, video links) is held in a Pending Review queue and published only after manual approval by the Administrator.\n3. Vendors must keep government licences valid. Expired licences lead to automatic suspension of the listing.\n4. Free plan: one profile image; Call/WhatsApp buttons hidden. Premium plan: contact buttons, gallery, banner and video embeds.\n5. Subscription and ad fees are non-refundable once the service is live.\n6. PVRS HUB may remove any listing without notice upon a valid takedown request or legal order."
-      },
-      "grievance": {
-        "title": "Grievance Officer",
-        "body": "In accordance with the Information Technology Act, 2000 and the IT (Intermediary Guidelines) Rules, 2021, complaints and takedown requests may be sent to:\n\nGrievance Officer — PVRS HUB\nEmail: legal@yourdomain.in\nResponse: acknowledgement within 24 hours, resolution within 15 days."
-      },
-      "about": {
-        "title": "About PVRS HUB",
-        "body": "PVRS HUB is a verified local business directory for Udupi, Manipal, Malpe and Mangaluru — built for students, tourists and residents of coastal Karnataka."
-      }
-    },
-    "searchStats": {
-      "food-and-dining": 3
-    }
-  }
+  "reviews": [],
+  "enquiries": [],
+  "favorites": []
 }

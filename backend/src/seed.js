@@ -2,17 +2,17 @@
 const db = require('./db');
 
 const CATS = [
-  ['Restaurants & Food', '🍽️', '#FF6600', ['Pure Veg Restaurants', 'Non-Veg Dhabas', 'Cafes', 'Biryani Houses']],
-  ['Hotels & Stay', '🛏️', '#0055FF', ['Luxury Hotels', 'Budget Stays', 'Resorts', 'PGs & Hostels']],
-  ['Health & Hospitals', '🏥', '#dc2626', ['General Hospitals', 'Dentists', 'Pharmacies', 'Clinics']],
+  ['Restaurants & Food', '🍽️', '#FF6600', ['Pure Veg Restaurants', 'Non-Veg Dhabas', 'Cafes', 'Biryani Houses', 'Ice Cream Parlours', 'Home Kitchens & Home-Cooked Food Deliveries']],
+  ['Hotels & Stay', '🛏️', '#0055FF', ['Luxury Hotels', 'Budget Stays', 'Resorts', 'Student PGs & Hostels', 'Homestays']],
+  ['Health & Hospitals', '🏥', '#dc2626', ['General Hospitals', 'General Physicians', 'Dentists', '24/7 Pharmacies', 'Diagnostic Labs', 'Ayurvedic Clinics', 'Local Home Nursing Care']],
   ['Education & Training', '🎓', '#7c3aed', ['Schools', 'Colleges', 'Coaching Centers', 'Tutors']],
-  ['Home & Construction', '🏠', '#f97316', ['Architects', 'Builders', 'Interior Designers', 'Plumbers']],
-  ['Automotive & Transport', '🚗', '#0055FF', ['Car Rentals', 'Bike Showrooms', 'Auto Repair', 'Taxi Services']],
+  ['Home & Construction', '🏠', '#f97316', ['Electricians', 'Plumbers', 'AC Repair', 'Carpenters', 'Pest Control', 'Appliance Technicians', 'Laundry & Dry Cleaning', 'Packers & Movers', 'Builders', 'Interior Designers', 'Architects']],
+  ['Automotive & Transport', '🚗', '#0055FF', ['Car Rentals', 'Two-Wheeler/Scooter Rentals', 'Auto-Rickshaw Call Links', 'Local Taxi Services', 'Garages', 'Towing Services', 'Bike Showrooms']],
   ['Shopping & Retail', '🛍️', '#db2777', ['Supermarkets', 'Clothing Stores', 'Electronics', 'Malls']],
   ['Beauty & Wellness', '🌿', '#16a34a', ['Salons', 'Spas', 'Gyms', 'Yoga Centers']],
   ['Professional Services', '💼', '#0055FF', ['Lawyers', 'CA & Accountants', 'Consultants', 'IT Services']],
-  ['Events & Entertainment', '⭐', '#7c3aed', ['Wedding Planners', 'Banquet Halls', 'Photographers', 'Caterers']],
-  ['Real Estate', '🏢', '#0055FF', ['Real Estate Agents', 'Commercial Properties', 'Flats for Rent', 'Land Brokers']],
+  ['Events & Entertainment', '⭐', '#7c3aed', ['Kalyana Mantapas (Wedding Halls)', 'Event Decorators', 'Local Photographers', 'DJ Sound Providers', 'Outdoor Caterers', 'Wedding Planners']],
+  ['Real Estate', '🏢', '#0055FF', ['Rent Houses', 'Flats & Apartments for Lease', 'Commercial Shops', 'Real Estate Brokers', 'Land Brokers']],
 ];
 const slug = (s) => s.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
@@ -43,9 +43,9 @@ Response: acknowledgement within 24 hours, resolution within 15 days.` },
   about: { title: 'About PVRS HUB', body: 'PVRS HUB is a verified local business directory for Udupi, Manipal, Malpe and Mangaluru — built for students, tourists and residents of coastal Karnataka.' },
 };
 
-function seed(reset) {
+async function seed(reset) {
   if (!reset && !db.isEmpty()) return;
-  db.reset({});
+  await db.reset();
   CATS.forEach(([name, icon, color, subs], i) => db.insert('categories', { name, slug: slug(name), icon, color, subs, order: i, active: true }, 'cat'));
   db.setSettings({
     siteName: 'PVRS HUB',
@@ -60,7 +60,7 @@ function seed(reset) {
     pages: LEGAL, searchStats: {},
   });
   db.insert('ads', { type: 'top_banner', title: 'SRI GANESH MOTORS', subtitle: 'Ride the new style — Wide Range | Best Offers | Easy Finance', cta: 'BOOK NOW', link: '/search?q=scooter', bg: 'linear-gradient(90deg,#7f1d1d,#dc2626)', status: 'approved', createdBy: 'admin' }, 'ad');
-  db.insert('ads', { type: 'top_banner', title: 'MANIPAL STAY PG', subtitle: 'Fully furnished PGs near MIT/MAHE — Wi-Fi, food, laundry', cta: 'ENQUIRE', link: '/category/property-and-rentals', bg: 'linear-gradient(90deg,#0033aa,#0055FF)', status: 'approved', createdBy: 'admin' }, 'ad');
+  db.insert('ads', { type: 'top_banner', title: 'MANIPAL STAY PG', subtitle: 'Fully furnished PGs near MIT/MAHE — Wi-Fi, food, laundry', cta: 'ENQUIRE', link: '/category/hotels-and-stay', bg: 'linear-gradient(90deg,#0033aa,#0055FF)', status: 'approved', createdBy: 'admin' }, 'ad');
   db.insert('ads', { type: 'middle_banner', title: 'COASTAL TMT', subtitle: 'Stronger Foundations. Brighter Tomorrow.', cta: 'KNOW MORE', link: '/advertise', bg: 'linear-gradient(90deg,#eff6ff,#dbeafe)', status: 'approved', createdBy: 'admin' }, 'ad');
   db.insert('ads', { type: 'promo', title: 'Make Your Home More Beautiful', subtitle: 'Furniture | Interiors | Home Decor', cta: 'EXPLORE NOW', link: '/search?q=interior', image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=70', status: 'approved', createdBy: 'admin' }, 'ad');
   db.insert('ads', { type: 'hero_video', title: 'Discover Udupi & Mangaluru', subtitle: 'A City of Opportunities', youtubeUrl: 'https://www.youtube.com/watch?v=ScMzIvxBSi4', status: 'approved', createdBy: 'admin' }, 'ad');
@@ -71,20 +71,23 @@ function seed(reset) {
   db.insert('blogs', { title: 'Top 10 Student PGs near Manipal', excerpt: 'How to pick a safe, affordable PG near MIT/MAHE.', body: 'Check the owner\'s registration, visit in person, verify food & Wi-Fi...', published: true }, 'blo');
 
   const demo = [
-    ['Hotel Diana', 'restaurants-and-food', 'Restaurants', 'Udupi', 'premium', { swiggy: 'https://www.swiggy.com' }, 'featured', 4.8, 1200, 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=400&q=70'],
-    ['KMC Hospital', 'health-and-hospitals', 'Hospitals', 'Mangaluru', 'premium', null, 'premium', 4.6, 980, 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=400&q=70'],
+    ['Hotel Diana', 'restaurants-and-food', 'Pure Veg Restaurants', 'Udupi', 'premium', { swiggy: 'https://www.swiggy.com', zomato: 'https://www.zomato.com' }, 'featured', 4.8, 1200, 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=400&q=70'],
+    ['KMC Hospital', 'health-and-hospitals', 'General Hospitals', 'Mangaluru', 'premium', null, 'premium', 4.6, 980, 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=400&q=70'],
     ['Sagar Electronics', 'shopping-and-retail', 'Electronics', 'Udupi', 'free', null, 'verified', 4.5, 430, 'https://images.unsplash.com/photo-1550009158-9a375e54d588?w=400&q=70'],
-    ['Trisha Beauty Salon', 'beauty-and-wellness', 'Beauty & Wellness', 'Mangaluru', 'premium', null, 'featured', 4.7, 620, 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&q=70'],
-    ['Coastal Builders', 'home-and-construction', 'Home & Construction', 'Udupi', 'premium', null, 'premium', 4.6, 310, 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=400&q=70']
+    ['Trisha Beauty Salon', 'beauty-and-wellness', 'Salons', 'Mangaluru', 'premium', null, 'featured', 4.7, 620, 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&q=70'],
+    ['Coastal Builders', 'home-and-construction', 'Builders', 'Udupi', 'premium', null, 'premium', 4.6, 310, 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=400&q=70']
   ];
   demo.forEach(([name, category, subCategory, city, plan, orderOnline, badge, rating, reviews, image], i) => db.insert('businesses', {
     name, category, subCategory, city, address: 'Main Road, ' + city, description: `${name} — trusted ${subCategory} in ${city}.`,
-    contact: { phone: '98450' + String(10000 + i), whatsapp: '98450' + String(10000 + i) }, orderOnline, image, badge,
+    contact: { phone: '98450' + String(10000 + i), whatsapp: '98450' + String(10000 + i) }, orderOnline, profileImage: image, badge,
     plan, planExpiry: plan === 'premium' ? new Date(Date.now() + 300 * 864e5).toISOString() : null,
     status: 'approved', approvedOnce: true, verified: true, unclaimed: i >= 4, rating: rating, reviews: reviews, views: 100 * i, leads: 0, featured: (badge === 'featured')
   }, 'biz'));
-  db.flush();
+  await db.flush();
   console.log('Seeded database');
 }
 module.exports = seed;
-if (require.main === module) seed(process.argv.includes('--reset'));
+if (require.main === module) {
+  require('dotenv').config();
+  db.init().then(() => seed(process.argv.includes('--reset'))).then(async () => { await db.flush(); process.exit(0); });
+}

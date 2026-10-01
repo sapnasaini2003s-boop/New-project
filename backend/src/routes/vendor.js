@@ -120,6 +120,19 @@ router.post('/claims', upload.fields([{ name: 'document', maxCount: 1 }]), (req,
   res.status(201).json({ message: 'Claim submitted for admin verification', data: c });
 });
 
+router.get('/enquiries', (req, res) => {
+  const ids = new Set(mine(req).map((b) => b._id));
+  res.json(db.find('enquiries', (e) => ids.has(e.businessId)).slice().reverse());
+});
+router.put('/enquiries/:id', (req, res) => {
+  const e = db.get('enquiries', req.params.id); const b = e && db.get('businesses', e.businessId);
+  if (!b || b.ownerId !== req.user._id) return res.status(404).json({ message: 'Not found' });
+  res.json(db.update('enquiries', e._id, { status: req.body.status === 'closed' ? 'closed' : 'contacted' }));
+});
+router.get('/reviews', (req, res) => {
+  const ids = new Set(mine(req).map((b) => b._id));
+  res.json(db.find('reviews', (r) => ids.has(r.businessId) && r.status === 'approved').slice().reverse());
+});
 router.get('/payments', (req, res) => res.json(db.find('payments', (p) => p.userId === req.user._id)));
 router.get('/notifications', (req, res) => res.json(db.find('notifications', (n) => n.userId === req.user._id).slice(-30).reverse()));
 

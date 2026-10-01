@@ -27,23 +27,58 @@ const role = (...roles) => (req, res, next) =>
   req.user && roles.includes(req.user.role) ? next() : res.status(403).json({ message: 'Not allowed' });
 
 // ---------- uploads ----------
+// Files go to Postgres BYTEA when Postgres is connected (survives redeploys), else to backend/uploads/.
 const UP = path.join(__dirname, '..', 'uploads');
 for (const d of ['public', 'private']) fs.mkdirSync(path.join(UP, d), { recursive: true });
 const ALLOWED = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'application/pdf': '.pdf' };
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(UP, file.fieldname === 'document' ? 'private' : 'public')),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + crypto.randomBytes(5).toString('hex') + ALLOWED[file.mimetype]),
-});
-const upload = multer({
-  storage,
+const mem = multer({
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (!ALLOWED[file.mimetype]) return cb(new Error('Only JPG, PNG, WEBP or PDF files allowed'));
-    if (file.fieldname !== 'document' && file.mimetype === 'application/pdf') return cb(new Error('Images must be JPG/PNG/WEBP'));
+    if (!ALLOWED[file.mimetype]) return cb(Object.assign(new Error('Only JPG, PNG, WEBP or PDF files allowed'), { status: 400 }));
+    if (file.fieldname !== 'document' && file.mimetype === 'application/pdf') return cb(Object.assign(new Error('Images must be JPG/PNG/WEBP'), { status: 400 }));
     cb(null, true);
   },
 });
-const fileUrl = (f) => (f ? (f.fieldname === 'document' ? `private/${f.filename}` : `/uploads/public/${f.filename}`) : undefined);
+
+async function storeFile(f) {
+  const kind = f.fieldname === 'document' ? 'private' : 'public';
+  const name = Date.now() + '-' + crypto.randomBytes(5).toString('hex') + ALLOWED[f.mimetype];
+  
+  const pool = db.pg();
+  if (pool) {
+    await pool.query('INSERT INTO files (name, kind, mimetype, data) VALUES ($1, $2, $3, $4)', [name, kind, f.mimetype, f.buffer]);
+  } else {
+    fs.writeFileSync(path.join(UP, kind, name), f.buffer);
+  }
+  
+  f.url = kind === 'private' ? `private/${name}` : `/uploads/public/${name}`;
+  delete f.buffer;
+}
+
+const upload = {
+  fields: (spec) => [mem.fields(spec), async (req, res, next) => {
+    try { for (const list of Object.values(req.files || {})) for (const f of list) await storeFile(f); next(); } catch (e) { next(e); }
+  }],
+};
+
+const fileUrl = (f) => (f ? f.url : undefined);
+
+// Stream a stored file (Postgres or disk)
+async function sendStored(kind, name, res) {
+  name = path.basename(name);
+  const pool = db.pg();
+  if (pool) {
+    const { rows } = await pool.query('SELECT mimetype, data FROM files WHERE name = $1 AND kind = $2', [name, kind]);
+    if (rows.length === 0) return res.status(404).send('Not found');
+    res.type(rows[0].mimetype);
+    res.set('Cache-Control', kind === 'public' ? 'public, max-age=604800' : 'private, no-store');
+    return res.send(rows[0].data);
+  } else {
+    const f = path.join(UP, kind, name); 
+    return fs.existsSync(f) ? res.sendFile(f) : res.status(404).send('Not found');
+  }
+}
 
 // ---------- plan helpers ----------
 const isPremium = (b) => b.plan === 'premium' && (!b.planExpiry || new Date(b.planExpiry) > new Date());
@@ -57,7 +92,8 @@ function publicBiz(b, full = false) {
   const prem = isPremium(b);
   const out = {
     _id: b._id, name: b.name, description: b.description, category: b.category, subCategory: b.subCategory,
-    city: b.city, address: full ? b.address : undefined, profileImage: b.profileImage, rating: b.rating || 0,
+    city: b.city, address: full ? b.address : undefined, profileImage: b.profileImage || b.image, badge: b.badge,
+    mapUrl: full && (b.address || b.city) ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([b.name, b.address, b.city].filter(Boolean).join(', '))}` : undefined, rating: b.rating || 0,
     reviews: b.reviews || 0, verified: !!b.verified, plan: prem ? 'premium' : 'free', unclaimed: !!b.unclaimed,
     timings: b.timings, tags: b.tags, featured: prem,
     orderOnline: b.orderOnline && (b.orderOnline.swiggy || b.orderOnline.zomato) ? b.orderOnline : undefined,
@@ -83,4 +119,4 @@ function notify(userId, title, message, channel = 'email') {
   console.log(`[notify:${channel}] -> ${u?.phone || 'admin'}: ${title}`);
 }
 
-module.exports = { sign, auth, role, upload, fileUrl, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };
+module.exports = { sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };

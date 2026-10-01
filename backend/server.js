@@ -3,14 +3,16 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
-require('./src/seed')(false); // seeds only when DB is empty
+const db = require('./src/db');
+const { sendStored } = require('./src/util');
 const app = express();
-app.use(cors({ origin: '*' }));
+app.use(cors()); // Bearer-token auth (no cookies) so open CORS is safe
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads/public', express.static(path.join(__dirname, 'uploads', 'public'), { maxAge: '7d' }));
+app.get('/uploads/public/:name', (req, res, next) => sendStored('public', req.params.name, res).catch(next));
 
-app.get('/', (req, res) => res.json({ message: 'PVRS HUB API running' }));
+app.get('/', (req, res) => res.json({ message: 'PVRS HUB API running', storage: db.mode() }));
+app.get('/api/health', (req, res) => res.json({ ok: true, storage: db.mode() }));
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api', require('./src/routes/public'));
 app.use('/api/vendor', require('./src/routes/vendor'));
@@ -22,6 +24,12 @@ app.use((err, req, res, next) => {
   res.status(err.status || 400).json({ message: err.message || 'Server error' });
 });
 
-require('./src/jobs').start();
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`PVRS HUB API on http://localhost:${PORT}`));
+(async () => {
+  await db.init();
+  await require('./src/seed')(false); // seeds only when DB is empty
+  require('./src/jobs').start();
+  app.listen(PORT, () => console.log(`PVRS HUB API on http://localhost:${PORT} (storage: ${db.mode()})`));
+})();
+const bye = async () => { await db.flush(); process.exit(0); };
+process.on('SIGINT', bye); process.on('SIGTERM', bye);
