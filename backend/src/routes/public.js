@@ -70,7 +70,11 @@ router.get('/businesses/:id', (req, res) => {
   const b = db.get('businesses', req.params.id);
   if (!b || !live(b)) return res.status(404).json({ message: 'Listing not found' });
   db.update('businesses', b._id, { views: (b.views || 0) + 1 });
-  res.json(publicBiz(b, true));
+  const full = publicBiz(b, true);
+  full.related = db.find('businesses', (x) => live(x) && x._id !== b._id && x.category === b.category)
+                   .sort((x, y) => (y.featured ? 1 : 0) - (x.featured ? 1 : 0) || (y.rating || 0) - (x.rating || 0))
+                   .slice(0, 4).map((x) => publicBiz(x));
+  res.json(full);
 });
 
 // Lead tracking + WhatsApp auto-alert to premium owners

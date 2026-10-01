@@ -30,3 +30,20 @@ Admin panel tabs: Overview, Approval Queue, Businesses (pre-load unclaimed), Use
 
 ## Note vs spec
 The PDF asks for WordPress + ListingPro; this repo is a custom Node/Next build implementing the same business logic. For Hostinger use a **Node.js hosting / VPS** plan (shared WordPress hosting can't run it).
+
+
+## ⚠️ Data saving (IMPORTANT)
+Render / Railway free instances **wipe their disk on every restart/redeploy** — that is why data (users, listings, uploads) was disappearing.
+The backend now saves **everything in MongoDB** (data + uploaded images/documents via GridFS) whenever `MONGODB_URI` works.
+
+1. Create a free cluster on MongoDB Atlas → Database Access: add user → Network Access: allow `0.0.0.0/0`.
+2. Copy the connection string, e.g. `mongodb+srv://user:pass@cluster0.xxxx.mongodb.net/?retryWrites=true&w=majority`
+3. Render → backend service → Environment: set `MONGODB_URI`, `MONGODB_DB=pvrs_hub`, `JWT_SECRET`, `ADMIN_PHONE`. Redeploy.
+4. Check `https://<backend>/api/health` → must show `"storage":"mongo"`. If it shows `"file"`, the URI is wrong (see Render logs).
+5. Vercel → frontend → Environment: `NEXT_PUBLIC_API_URL=https://<backend>.onrender.com`, redeploy.
+
+Locally without MongoDB it falls back to `backend/data/db.json` (fine for dev). First Mongo start auto-imports an existing `data/db.json`.
+
+## New in this update
+Reviews & ratings (admin-moderated), customer enquiry form + vendor Enquiries inbox (WhatsApp alert for premium), saved/favourite businesses (`/favorites`),
+search autocomplete, filters & sort on listing pages, Google Maps directions, share button, photo lightbox, admin “Enquiries & Reviews” tab + Reviews in approval queue.
