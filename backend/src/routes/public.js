@@ -1,7 +1,7 @@
 // Public (no-login) APIs used by the website
 const router = require('express').Router();
 const db = require('../db');
-const { publicBiz, isPremium, auth, notify } = require('../util');
+const { publicBiz, isPremium, auth, notify, features, requireFeature } = require('../util');
 
 const live = (b) => b.status === 'approved';
 const activeAd = (a) => {
@@ -12,6 +12,9 @@ const trackSearch = (cat) => {
   if (!cat) return; const s = db.settings(); const st = s.searchStats || {};
   st[cat] = (st[cat] || 0) + 1; db.setSettings({ searchStats: st });
 };
+
+// Public config: feature switches the frontend uses to show/hide things
+router.get('/config', (req, res) => { const s = db.settings(); res.json({ features: features(), siteName: s.siteName, cities: s.cities, announcement: s.announcement }); });
 
 router.get('/categories', (req, res) => res.json(db.all('categories').filter((c) => c.active !== false).sort((a, b) => (a.order || 0) - (b.order || 0))));
 
@@ -45,8 +48,9 @@ router.get('/featured', (req, res) => {
 });
 
 router.get('/businesses', (req, res) => {
-  const { q, category, sub, city, sort } = req.query;
+  const { q, category, sub, city, sort, ids } = req.query;
   let list = db.all('businesses').filter(live);
+  if (ids) { const set = new Set(String(ids).split(',')); return res.json(list.filter((b) => set.has(b._id)).map((b) => publicBiz(b))); }
   if (category) { list = list.filter((b) => b.category === category); trackSearch(category); }
   if (sub) list = list.filter((b) => b.subCategory === sub);
   if (city) list = list.filter((b) => !b.city || b.city.toLowerCase() === String(city).toLowerCase());
@@ -145,20 +149,37 @@ router.get('/businesses/:id/reviews', (req, res) => {
   res.json(db.find('reviews', (r) => r.businessId === req.params.id && r.status === 'approved').slice(-50).reverse()
     .map((r) => ({ _id: r._id, name: r.name, rating: r.rating, text: r.text, createdAt: r.createdAt })));
 });
-router.post('/reviews', auth(), (req, res) => {
+router.post('/reviews', auth(false), requireFeature('reviews', 'Reviews are currently disabled'), (req, res) => {
+  const f = features();
   const { businessId, rating, text } = req.body; const b = db.get('businesses', businessId);
   const n = Number(rating);
   if (!b || !live(b)) return res.status(404).json({ message: 'Listing not found' });
   if (!(n >= 1 && n <= 5)) return res.status(400).json({ message: 'Rating must be 1–5' });
-  if (b.ownerId === req.user._id) return res.status(400).json({ message: 'You cannot review your own business' });
-  if (db.find('reviews', (r) => r.businessId === businessId && r.userId === req.user._id && r.status !== 'rejected').length)
+  let name = req.user?.name, phone = req.user?.phone;
+  if (!req.user) {
+    if (!f.guestReviews) return res.status(401).json({ message: 'Please login to write a review' });
+    name = String(req.body.name || '').trim(); phone = String(req.body.phone || '');
+    if (!name || !/^[6-9]\d{9}$/.test(phone)) return res.status(400).json({ message: 'Enter your name and a valid 10-digit mobile' });
+  }
+  if (req.user && b.ownerId === req.user._id) return res.status(400).json({ message: 'You cannot review your own business' });
+  if (db.find('reviews', (r) => r.businessId === businessId && r.phone === phone && r.status !== 'rejected').length)
     return res.status(400).json({ message: 'You have already reviewed this business' });
-  db.insert('reviews', { businessId, businessName: b.name, userId: req.user._id, name: req.user.name || 'Customer', phone: req.user.phone, rating: n, text: String(text || '').slice(0, 1000), status: 'pending' }, 'rev');
+  db.insert('reviews', { businessId, businessName: b.name, userId: req.user?._id || null, name: name || 'Customer', phone, rating: n, text: String(text || '').slice(0, 1000), status: 'pending', guest: !req.user }, 'rev');
   res.status(201).json({ message: 'Thanks! Your review will appear after moderation.' });
 });
 
+// ---------- Report a listing (Section 79 takedown / spam) ----------
+router.post('/reports', auth(false), requireFeature('reports'), (req, res) => {
+  const { businessId, reason, details, name, phone } = req.body; const b = db.get('businesses', businessId);
+  if (!b) return res.status(404).json({ message: 'Listing not found' });
+  if (!reason) return res.status(400).json({ message: 'Select a reason' });
+  db.insert('reports', { businessId, businessName: b.name, reason, details: String(details || '').slice(0, 1000), name: name || req.user?.name, phone: phone || req.user?.phone, status: 'pending' }, 'rep');
+  notify(null, 'Listing reported', `${b.name}: ${reason}`, 'inbox');
+  res.status(201).json({ message: 'Report submitted. Our team will review it within 24 hours.' });
+});
+
 // ---------- Enquiries (lead form — works on every plan) ----------
-router.post('/enquiries', auth(false), (req, res) => {
+router.post('/enquiries', auth(false), requireFeature('enquiries', 'Enquiries are currently disabled'), (req, res) => {
   const { businessId, name, phone, message } = req.body; const b = db.get('businesses', businessId);
   if (!b || !live(b)) return res.status(404).json({ message: 'Listing not found' });
   if (!name || !/^[6-9]\d{9}$/.test(phone || '')) return res.status(400).json({ message: 'Enter your name and a valid 10-digit mobile' });

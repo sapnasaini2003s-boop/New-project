@@ -2,7 +2,7 @@
 const router = require('express').Router();
 const crypto = require('crypto');
 const db = require('../db');
-const { auth } = require('../util');
+const { auth, features } = require('../util');
 
 router.use(auth());
 const keys = () => ({ id: process.env.RAZORPAY_KEY_ID, secret: process.env.RAZORPAY_KEY_SECRET });
@@ -11,6 +11,7 @@ router.post('/order', async (req, res) => {
   const { purpose, businessId, adId } = req.body; // purpose: premium_plan | banner_ad
   let amount;
   if (purpose === 'premium_plan') {
+    if (!features().premiumUpgrade) return res.status(403).json({ message: 'Premium upgrades are currently disabled' });
     const b = db.get('businesses', businessId);
     if (!b || b.ownerId !== req.user._id) return res.status(400).json({ message: 'Invalid listing' });
     if (b.status !== 'approved') return res.status(400).json({ message: 'Listing must be approved by admin before upgrading' });

@@ -3,7 +3,7 @@ const router = require('express').Router();
 const path = require('path');
 const fs = require('fs');
 const db = require('../db');
-const { auth, role, upload, fileUrl, sendStored, notify, parseJSON, UP, isPremium } = require('../util');
+const { features, FEATURE_DEFAULTS, auth, role, upload, fileUrl, sendStored, notify, parseJSON, UP, isPremium } = require('../util');
 const { runExpiryJob } = require('../jobs');
 
 // Private document viewer (token via ?token= so it opens in new tab)
@@ -33,8 +33,41 @@ function queueCounts() {
     ads: db.find('ads', (a) => a.status === 'pending').length,
     claims: db.find('claims', (c) => c.status === 'pending').length,
     reviews: db.find('reviews', (r) => r.status === 'pending').length,
+    reports: db.find('reports', (r) => r.status === 'pending').length,
   };
 }
+
+// ---- analytics (charts on Admin → Overview) ----
+router.get('/analytics', (req, res) => {
+  const days = Math.min(90, Math.max(7, parseInt(req.query.days) || 30));
+  const DAY = 864e5; const start = new Date(); start.setHours(0, 0, 0, 0); const t0 = start.getTime() - (days - 1) * DAY;
+  const idx = (iso) => { const t = new Date(iso).getTime(); return t < t0 ? -1 : Math.floor((t - t0) / DAY); };
+  const series = (rows, pred = () => true, val = () => 1) => { const a = Array(days).fill(0); for (const r of rows) { if (!pred(r)) continue; const i = idx(r.createdAt); if (i >= 0 && i < days) a[i] += val(r); } return a; };
+  const leads = db.all('leads'); const B = db.all('businesses'); const P = db.all('payments').filter((p) => p.status === 'paid');
+  const labels = Array.from({ length: days }, (_, i) => new Date(t0 + i * DAY).toISOString().slice(0, 10));
+  const cats = db.all('categories');
+  const count = (arr, key) => { const m = {}; for (const x of arr) { const k = key(x) || '—'; m[k] = (m[k] || 0) + 1; } return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value })); };
+  const live = B.filter((b) => b.status === 'approved');
+  const sum = (a) => a.reduce((x, y) => x + y, 0);
+  const half = Math.floor(days / 2);
+  const trend = (a) => { const prev = sum(a.slice(0, half)), cur = sum(a.slice(half)); return prev ? Math.round(((cur - prev) / prev) * 100) : (cur ? 100 : 0); };
+  const views = series(leads, (l) => l.type === 'view'), calls = series(leads, (l) => l.type === 'call'), whatsapp = series(leads, (l) => l.type === 'whatsapp'),
+    enquiries = series(db.all('enquiries')), revenue = series(P, () => true, (p) => p.amount), listings = series(B), users = series(db.all('users'));
+  res.json({
+    days, labels,
+    series: { views, calls, whatsapp, enquiries, revenue, listings, users },
+    totals: { views: sum(views), contacts: sum(calls) + sum(whatsapp) + sum(enquiries), revenue: sum(revenue), listings: sum(listings), users: sum(users) },
+    trends: { views: trend(views), contacts: trend(calls.map((v, i) => v + whatsapp[i] + enquiries[i])), revenue: trend(revenue), listings: trend(listings), users: trend(users) },
+    byCategory: count(live, (b) => cats.find((c) => c.slug === b.category)?.name || b.category).slice(0, 8),
+    byCity: count(live, (b) => b.city).slice(0, 8),
+    plans: { premium: B.filter(isPremium).length, free: B.filter((b) => !isPremium(b)).length },
+    status: count(B, (b) => b.status),
+    topBusinesses: live.slice().sort((a, b) => ((b.views || 0) + (b.leads || 0) * 5) - ((a.views || 0) + (a.leads || 0) * 5)).slice(0, 8)
+      .map((b) => ({ _id: b._id, name: b.name, city: b.city, views: b.views || 0, leads: b.leads || 0, plan: isPremium(b) ? 'premium' : 'free', rating: b.rating || 0 })),
+    searches: Object.entries(db.settings().searchStats || {}).map(([k, v]) => ({ name: cats.find((c) => c.slug === k)?.name || k, value: v })).sort((a, b) => b.value - a.value).slice(0, 8),
+    expiring: B.filter((b) => isPremium(b) && b.planExpiry && new Date(b.planExpiry) - Date.now() < 30 * DAY).map((b) => ({ _id: b._id, name: b.name, planExpiry: b.planExpiry })).slice(0, 8),
+  });
+});
 
 router.get('/queue', (req, res) => {
   const owner = (id) => { const u = db.get('users', id); return u ? { name: u.name, phone: u.phone, status: u.status } : null; };
@@ -46,6 +79,7 @@ router.get('/queue', (req, res) => {
     ads: db.find('ads', (a) => a.status === 'pending'),
     claims: db.find('claims', (c) => c.status === 'pending'),
     reviews: db.find('reviews', (r) => r.status === 'pending'),
+    reports: db.find('reports', (r) => r.status === 'pending'),
   });
 });
 
@@ -154,6 +188,55 @@ router.put('/reviews/:id/:action', (req, res) => {
 });
 router.delete('/reviews/:id', (req, res) => res.json({ ok: db.remove('reviews', req.params.id) }));
 router.get('/enquiries', (req, res) => res.json(db.all('enquiries').slice().reverse()));
+
+// ---- reports (takedown / spam) ----
+router.put('/reports/:id', (req, res) => {
+  const r = db.get('reports', req.params.id); if (!r) return res.status(404).json({ message: 'Not found' });
+  if (req.body.action === 'suspend') db.update('businesses', r.businessId, { status: 'suspended', suspendReason: `Reported: ${r.reason}` });
+  db.update('reports', r._id, { status: req.body.action === 'dismiss' ? 'dismissed' : 'resolved', resolvedAt: new Date().toISOString() });
+  db.log('report_' + (req.body.action || 'resolve'), req.user._id, { id: r._id, businessId: r.businessId });
+  res.json({ message: 'Done' });
+});
+
+// ---- feature switches ----
+router.get('/features', (req, res) => res.json(features()));
+router.put('/features', (req, res) => {
+  const cur = db.settings().features || {}; const next = { ...cur };
+  for (const k of Object.keys(FEATURE_DEFAULTS)) if (typeof req.body[k] === 'boolean') next[k] = req.body[k];
+  if (typeof req.body.customerOtp === 'boolean') next.customerOtp = req.body.customerOtp;
+  db.setSettings({ features: next }); db.log('features_changed', req.user._id, req.body);
+  res.json(features());
+});
+
+// ---- bulk approve ----
+router.post('/bulk-approve', (req, res) => {
+  const ids = Array.isArray(req.body.ids) ? req.body.ids : []; let n = 0;
+  for (const id of ids) {
+    const b = db.get('businesses', id); if (!b) continue;
+    const patch = { status: 'approved', approvedOnce: true, verified: true, rejectionReason: null };
+    if (b.pendingUpdates) Object.assign(patch, b.pendingUpdates, { pendingUpdates: null });
+    db.update('businesses', id, patch); n++;
+    const u = db.get('users', b.ownerId); if (u && u.status === 'pending') db.update('users', u._id, { status: 'approved' });
+    notify(b.ownerId, 'Listing approved', `${b.name} is now live on PVRS HUB`);
+  }
+  db.log('bulk_approve', req.user._id, { count: n }); res.json({ message: `${n} listing(s) approved` });
+});
+
+// ---- CSV export ----
+const CSV = {
+  businesses: ['_id', 'name', 'category', 'subCategory', 'city', 'address', 'contact.phone', 'contact.whatsapp', 'plan', 'planExpiry', 'status', 'views', 'leads', 'rating', 'reviews', 'createdAt'],
+  users: ['_id', 'name', 'phone', 'role', 'status', 'blocked', 'createdAt'],
+  enquiries: ['_id', 'businessName', 'name', 'phone', 'message', 'status', 'createdAt'],
+  payments: ['_id', 'purpose', 'amount', 'status', 'orderId', 'razorpayPaymentId', 'createdAt'],
+  reviews: ['_id', 'businessName', 'name', 'phone', 'rating', 'text', 'status', 'createdAt'],
+};
+router.get('/export/:what', (req, res) => {
+  const cols = CSV[req.params.what]; if (!cols) return res.status(404).send('Unknown export');
+  const get = (o, k) => k.split('.').reduce((a, x) => (a == null ? a : a[x]), o);
+  const esc = (v) => { const t = v == null ? '' : String(v); return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+  const rows = [cols.join(','), ...db.all(req.params.what).map((o) => cols.map((c) => esc(get(o, c))).join(','))];
+  res.set('Content-Type', 'text/csv; charset=utf-8').set('Content-Disposition', `attachment; filename="pvrs-${req.params.what}-${new Date().toISOString().slice(0, 10)}.csv"`).send('\ufeff' + rows.join('\n'));
+});
 
 // ---- categories ----
 router.post('/categories', (req, res) => {

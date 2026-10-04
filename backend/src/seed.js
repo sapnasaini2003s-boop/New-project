@@ -83,6 +83,15 @@ async function seed(reset) {
     plan, planExpiry: plan === 'premium' ? new Date(Date.now() + 300 * 864e5).toISOString() : null,
     status: 'approved', approvedOnce: true, verified: true, unclaimed: i >= 4, rating: rating, reviews: reviews, views: 100 * i, leads: 0, featured: (badge === 'featured')
   }, 'biz'));
+  // Demo activity for the last 30 days so admin analytics isn't empty on a fresh install
+  const bizIds = db.all('businesses').map((b) => b._id);
+  for (let d = 29; d >= 0; d--) {
+    const day = Date.now() - d * 864e5; const n = 8 + Math.round(6 * Math.sin(d / 4) + Math.random() * 6);
+    for (let k = 0; k < n; k++) {
+      const type = k % 7 === 0 ? 'call' : k % 9 === 0 ? 'whatsapp' : 'view';
+      db.insert('leads', { businessId: bizIds[k % bizIds.length], type, demo: true, createdAt: new Date(day - Math.random() * 8e7).toISOString() }, 'lead');
+    }
+  }
   await db.flush();
   console.log('Seeded database');
 }

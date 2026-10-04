@@ -47,3 +47,8 @@ Locally without MongoDB it falls back to `backend/data/db.json` (fine for dev). 
 ## New in this update
 Reviews & ratings (admin-moderated), customer enquiry form + vendor Enquiries inbox (WhatsApp alert for premium), saved/favourite businesses (`/favorites`),
 search autocomplete, filters & sort on listing pages, Google Maps directions, share button, photo lightbox, admin “Enquiries & Reviews” tab + Reviews in approval queue.
+
+## Feature Controls (Admin → 🎛️ Feature Controls)
+On/off switches, applied live: customer login (default OFF — customers browse, review, save & enquire without account/OTP), customer OTP, new business signups, vendor OTP (admin login ALWAYS needs OTP), reviews, guest reviews, enquiries, favourites, claims, report-listing, Order Online, premium purchase, banner booking, maintenance mode. Plus an announcement bar and CSV exports (businesses, users, enquiries, reviews, payments).
+
+Other additions: “Report this listing” (Sec. 79 takedown queue in Approval Queue → Reports), bulk approve, guest favourites saved on device, redesigned login.

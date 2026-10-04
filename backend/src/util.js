@@ -119,4 +119,16 @@ function notify(userId, title, message, channel = 'email') {
   console.log(`[notify:${channel}] -> ${u?.phone || 'admin'}: ${title}`);
 }
 
-module.exports = { sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };
+// ---------- Feature switches (Admin → Feature Controls) ----------
+const FEATURE_DEFAULTS = {
+  customerLogin: false,   // customers browse/review/enquire WITHOUT login (no OTP signup)
+  vendorSignup: true,     // new business owners can register
+  vendorOtp: true,        // vendors must verify OTP (admin login ALWAYS needs OTP)
+  reviews: true, guestReviews: true, enquiries: true, favorites: true, claims: true,
+  bannerBooking: true, premiumUpgrade: true, reports: true, orderOnline: true,
+  maintenance: false,     // shows maintenance banner + blocks vendor submissions
+};
+const features = () => ({ ...FEATURE_DEFAULTS, ...(db.settings().features || {}) });
+const requireFeature = (k, msg) => (req, res, next) => (features()[k] ? next() : res.status(403).json({ message: msg || 'This feature is currently disabled by admin' }));
+
+module.exports = { features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };

@@ -1,9 +1,10 @@
 // Vendor (business owner) dashboard APIs. Every create/edit goes to the admin Pending Review queue.
 const router = require('express').Router();
 const db = require('../db');
-const { auth, upload, fileUrl, isPremium, parseJSON, pick, EDITABLE, notify } = require('../util');
+const { features, requireFeature, auth, upload, fileUrl, isPremium, parseJSON, pick, EDITABLE, notify } = require('../util');
 
 router.use(auth());
+const notMaint = (req, res, next) => (features().maintenance ? res.status(503).json({ message: 'Site is under maintenance. Submissions are paused, please try later.' }) : next());
 const mine = (req) => db.find('businesses', (b) => b.ownerId === req.user._id);
 const own = (req, res) => {
   const b = db.get('businesses', req.params.id);
@@ -46,7 +47,7 @@ router.get('/listings', (req, res) => res.json(mine(req)));
 router.get('/listings/:id', (req, res) => { const b = own(req, res); if (b) res.json(b); });
 
 // New listing -> status pending (not public until Admin approves)
-router.post('/listings', files, (req, res) => {
+router.post('/listings', notMaint, files, (req, res) => {
   try {
     if (!req.files?.document) return res.status(400).json({ message: 'Upload Trade License / FSSAI / KMC Registration Certificate (JPG, PNG or PDF) is mandatory' });
     const d = buildData(req, false);
@@ -60,7 +61,7 @@ router.post('/listings', files, (req, res) => {
 });
 
 // Edit -> stored in pendingUpdates. Public keeps showing the OLD verified data until admin approves.
-router.put('/listings/:id', files, (req, res) => {
+router.put('/listings/:id', notMaint, files, (req, res) => {
   const b = own(req, res); if (!b) return;
   try {
     const d = buildData(req, isPremium(b), b);
@@ -89,7 +90,7 @@ router.get('/stats', (req, res) => {
 });
 
 // ---- Pay-per-day banner ad booking ----
-router.post('/ads', upload.fields([{ name: 'image', maxCount: 1 }]), (req, res) => {
+router.post('/ads', requireFeature('bannerBooking', 'Banner booking is currently disabled'), upload.fields([{ name: 'image', maxCount: 1 }]), (req, res) => {
   const { businessId, type = 'top_banner', title, subtitle, link, startDate, days, youtubeUrl, cta } = req.body;
   const b = db.get('businesses', businessId);
   if (!b || b.ownerId !== req.user._id) return res.status(400).json({ message: 'Select your listing' });
@@ -110,7 +111,7 @@ router.post('/ads', upload.fields([{ name: 'image', maxCount: 1 }]), (req, res) 
 router.get('/ads', (req, res) => res.json(db.find('ads', (a) => a.ownerId === req.user._id)));
 
 // ---- Claim an unclaimed (pre-loaded) listing ----
-router.post('/claims', upload.fields([{ name: 'document', maxCount: 1 }]), (req, res) => {
+router.post('/claims', requireFeature('claims', 'Claiming is currently disabled'), upload.fields([{ name: 'document', maxCount: 1 }]), (req, res) => {
   const b = db.get('businesses', req.body.businessId);
   if (!b || !b.unclaimed) return res.status(400).json({ message: 'This listing cannot be claimed' });
   if (!req.files?.document) return res.status(400).json({ message: 'Upload a proof document (Trade License / FSSAI / KMC)' });

@@ -7,7 +7,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const FILE = path.join(__dirname, '..', 'data', 'db.json');
-const COLLECTIONS = ['users', 'businesses', 'categories', 'ads', 'payments', 'leads', 'claims', 'offers', 'blogs', 'videos', 'notifications', 'audit', 'reviews', 'enquiries', 'favorites'];
+const COLLECTIONS = ['users', 'businesses', 'categories', 'ads', 'payments', 'leads', 'claims', 'offers', 'blogs', 'videos', 'notifications', 'audit', 'reviews', 'enquiries', 'favorites', 'reports'];
 
 let state = null;
 let pgPool = null;
