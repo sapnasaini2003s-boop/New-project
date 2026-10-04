@@ -72,6 +72,64 @@
     },
     "searchStats": {
       "food-and-dining": 3
+    },
+    "features": {},
+    "seo": {
+      "title": "PVRS HUB – Udupi & Mangaluru Local Business Directory",
+      "description": "Find verified local businesses in Udupi, Manipal, Malpe and Mangaluru."
+    },
+    "contact": {
+      "email": "support@yourdomain.in",
+      "grievance": "legal@yourdomain.in",
+      "phone": ""
+    },
+    "migrations": [
+      {
+        "id": "001",
+        "appliedAt": "2026-10-04T20:14:35.618Z",
+        "result": "ok",
+        "ms": 7,
+        "by": "system"
+      },
+      {
+        "id": "002",
+        "appliedAt": "2026-10-04T20:14:35.626Z",
+        "result": "30 sub-categories added",
+        "ms": 1,
+        "by": "system"
+      },
+      {
+        "id": "003",
+        "appliedAt": "2026-10-04T20:14:35.626Z",
+        "result": "0 listings updated",
+        "ms": 0,
+        "by": "system"
+      },
+      {
+        "id": "004",
+        "appliedAt": "2026-10-04T20:14:35.626Z",
+        "result": "admin not registered yet",
+        "ms": 0,
+        "by": "system"
+      },
+      {
+        "id": "005",
+        "appliedAt": "2026-10-04T20:14:35.626Z",
+        "result": "ok",
+        "ms": 0,
+        "by": "system"
+      }
+    ],
+    "jobs": {
+      "expiry": {
+        "lastRun": "2026-10-04T20:14:35.628Z",
+        "ms": 0,
+        "result": {
+          "warned": 0,
+          "downgraded": 0,
+          "suspended": 0
+        }
+      }
     }
   },
   "users": [],
@@ -228,7 +286,7 @@
     {
       "_id": "cat_e021a2383437",
       "createdAt": "2026-09-29T18:20:03.970Z",
-      "updatedAt": "2026-09-29T18:20:03.971Z",
+      "updatedAt": "2026-10-04T20:14:35.625Z",
       "name": "Restaurants & Food",
       "slug": "restaurants-and-food",
       "icon": "🍽️",
@@ -237,7 +295,9 @@
         "Pure Veg Restaurants",
         "Non-Veg Dhabas",
         "Cafes",
-        "Biryani Houses"
+        "Biryani Houses",
+        "Ice Cream Parlours",
+        "Home Kitchens & Home-Cooked Food Deliveries"
       ],
       "order": 0,
       "active": true
@@ -245,7 +305,7 @@
     {
       "_id": "cat_b6c009461e77",
       "createdAt": "2026-09-29T18:20:03.971Z",
-      "updatedAt": "2026-09-29T18:20:03.971Z",
+      "updatedAt": "2026-10-04T20:14:35.626Z",
       "name": "Hotels & Stay",
       "slug": "hotels-and-stay",
       "icon": "🛏️",
@@ -254,7 +314,9 @@
         "Luxury Hotels",
         "Budget Stays",
         "Resorts",
-        "PGs & Hostels"
+        "PGs & Hostels",
+        "Student PGs & Hostels",
+        "Homestays"
       ],
       "order": 1,
       "active": true
@@ -262,7 +324,7 @@
     {
       "_id": "cat_8264e70672de",
       "createdAt": "2026-09-29T18:20:03.971Z",
-      "updatedAt": "2026-09-29T18:20:03.971Z",
+      "updatedAt": "2026-10-04T20:14:35.626Z",
       "name": "Health & Hospitals",
       "slug": "health-and-hospitals",
       "icon": "🏥",
@@ -271,7 +333,12 @@
         "General Hospitals",
         "Dentists",
         "Pharmacies",
-        "Clinics"
+        "Clinics",
+        "General Physicians",
+        "24/7 Pharmacies",
+        "Diagnostic Labs",
+        "Ayurvedic Clinics",
+        "Local Home Nursing Care"
       ],
       "order": 2,
       "active": true
@@ -296,7 +363,7 @@
     {
       "_id": "cat_e658eb378b49",
       "createdAt": "2026-09-29T18:20:03.971Z",
-      "updatedAt": "2026-09-29T18:20:03.971Z",
+      "updatedAt": "2026-10-04T20:14:35.626Z",
       "name": "Home & Construction",
       "slug": "home-and-construction",
       "icon": "🏠",
@@ -305,7 +372,14 @@
         "Architects",
         "Builders",
         "Interior Designers",
-        "Plumbers"
+        "Plumbers",
+        "Electricians",
+        "AC Repair",
+        "Carpenters",
+        "Pest Control",
+        "Appliance Technicians",
+        "Laundry & Dry Cleaning",
+        "Packers & Movers"
       ],
       "order": 4,
       "active": true
@@ -313,7 +387,7 @@
     {
       "_id": "cat_030ae7703c89",
       "createdAt": "2026-09-29T18:20:03.971Z",
-      "updatedAt": "2026-09-29T18:20:03.971Z",
+      "updatedAt": "2026-10-04T20:14:35.626Z",
       "name": "Automotive & Transport",
       "slug": "automotive-and-transport",
       "icon": "🚗",
@@ -322,7 +396,12 @@
         "Car Rentals",
         "Bike Showrooms",
         "Auto Repair",
-        "Taxi Services"
+        "Taxi Services",
+        "Two-Wheeler/Scooter Rentals",
+        "Auto-Rickshaw Call Links",
+        "Local Taxi Services",
+        "Garages",
+        "Towing Services"
       ],
       "order": 5,
       "active": true
@@ -381,7 +460,7 @@
     {
       "_id": "cat_569c79b85adf",
       "createdAt": "2026-09-29T18:20:03.972Z",
-      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-10-04T20:14:35.626Z",
       "name": "Events & Entertainment",
       "slug": "events-and-entertainment",
       "icon": "⭐",
@@ -390,7 +469,12 @@
         "Wedding Planners",
         "Banquet Halls",
         "Photographers",
-        "Caterers"
+        "Caterers",
+        "Kalyana Mantapas (Wedding Halls)",
+        "Event Decorators",
+        "Local Photographers",
+        "DJ Sound Providers",
+        "Outdoor Caterers"
       ],
       "order": 9,
       "active": true
@@ -398,7 +482,7 @@
     {
       "_id": "cat_cd0cb3430841",
       "createdAt": "2026-09-29T18:20:03.972Z",
-      "updatedAt": "2026-09-29T18:20:03.972Z",
+      "updatedAt": "2026-10-04T20:14:35.626Z",
       "name": "Real Estate",
       "slug": "real-estate",
       "icon": "🏢",
@@ -407,7 +491,11 @@
         "Real Estate Agents",
         "Commercial Properties",
         "Flats for Rent",
-        "Land Brokers"
+        "Land Brokers",
+        "Rent Houses",
+        "Flats & Apartments for Lease",
+        "Commercial Shops",
+        "Real Estate Brokers"
       ],
       "order": 10,
       "active": true
@@ -564,5 +652,6 @@
   "audit": [],
   "reviews": [],
   "enquiries": [],
-  "favorites": []
+  "favorites": [],
+  "reports": []
 }

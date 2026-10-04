@@ -2,6 +2,7 @@
 const router = require('express').Router();
 const db = require('../db');
 const { publicBiz, isPremium, auth, notify, features, requireFeature } = require('../util');
+const { limit, clean, isPhone } = require('../guard');
 
 const live = (b) => b.status === 'approved';
 const activeAd = (a) => {
@@ -124,7 +125,7 @@ router.get('/pricing', (req, res) => res.json({
   premium: Number(process.env.PREMIUM_PLAN_PRICE || 2999), premiumDays: Number(process.env.PREMIUM_PLAN_DAYS || 365),
   bannerPerDay: Number(process.env.BANNER_PRICE_PER_DAY || 199), razorpayKey: process.env.RAZORPAY_KEY_ID || null,
 }));
-router.post('/contact', (req, res) => {
+router.post('/contact', limit('contact', 5, 3600e3), (req, res) => {
   const { name, phone, message, type } = req.body;
   if (!name || !message) return res.status(400).json({ message: 'Name and message required' });
   db.insert('notifications', { title: `Contact form (${type || 'general'})`, message: `${name} (${phone}): ${message}`, channel: 'inbox', forAdmin: true }, 'ntf');
@@ -133,7 +134,7 @@ router.post('/contact', (req, res) => {
 
 
 // ---------- Grievance (login required) ----------
-router.post('/grievances', auth(true), (req, res) => {
+router.post('/grievances', limit('grv', 8, 3600e3), auth(true), (req, res) => {
   const { kind, details } = req.body; const text = String(details || '').trim();
   if (text.length < 5) return res.status(400).json({ message: 'Please write your query' });
   const issue = kind === 'issue';
@@ -159,7 +160,7 @@ router.get('/businesses/:id/reviews', (req, res) => {
   res.json(db.find('reviews', (r) => r.businessId === req.params.id && r.status === 'approved').slice(-50).reverse()
     .map((r) => ({ _id: r._id, name: r.name, rating: r.rating, text: r.text, createdAt: r.createdAt })));
 });
-router.post('/reviews', auth(true), requireFeature('reviews', 'Reviews are currently disabled'), (req, res) => {
+router.post('/reviews', limit('rev', 10, 3600e3), auth(true), requireFeature('reviews', 'Reviews are currently disabled'), (req, res) => {
   const { businessId, rating, text } = req.body; const b = db.get('businesses', businessId);
   const n = Number(rating);
   if (!b || !live(b)) return res.status(404).json({ message: 'Listing not found' });
@@ -168,12 +169,12 @@ router.post('/reviews', auth(true), requireFeature('reviews', 'Reviews are curre
   if (b.ownerId === req.user._id) return res.status(400).json({ message: 'You cannot review your own business' });
   if (db.find('reviews', (r) => r.businessId === businessId && r.phone === phone && r.status !== 'rejected').length)
     return res.status(400).json({ message: 'You have already reviewed this business' });
-  db.insert('reviews', { businessId, businessName: b.name, userId: req.user._id, name: name || 'Customer', phone, rating: n, text: String(text || '').slice(0, 1000), status: 'pending' }, 'rev');
+  db.insert('reviews', { businessId, businessName: b.name, userId: req.user._id, name: name || 'Customer', phone, rating: n, text: clean(text, 1000), status: 'pending' }, 'rev');
   res.status(201).json({ message: 'Thanks! Your review will appear after moderation.' });
 });
 
 // ---------- Report a listing (Section 79 takedown / spam) ----------
-router.post('/reports', auth(true), requireFeature('reports', 'Reporting is currently disabled'), (req, res) => {
+router.post('/reports', limit('rep', 10, 3600e3), auth(true), requireFeature('reports', 'Reporting is currently disabled'), (req, res) => {
   const { businessId, reason, details, name, phone } = req.body; const b = db.get('businesses', businessId);
   if (!b) return res.status(404).json({ message: 'Listing not found' });
   if (!reason) return res.status(400).json({ message: 'Select a reason' });
@@ -183,15 +184,17 @@ router.post('/reports', auth(true), requireFeature('reports', 'Reporting is curr
 });
 
 // ---------- Enquiries (lead form — works on every plan) ----------
-router.post('/enquiries', auth(false), requireFeature('enquiries', 'Enquiries are currently disabled'), (req, res) => {
+router.post('/enquiries', limit('enq', 6, 10 * 60e3), auth(false), requireFeature('enquiries', 'Enquiries are currently disabled'), (req, res) => {
   const { businessId, name, phone, message } = req.body; const b = db.get('businesses', businessId);
   if (!b || !live(b)) return res.status(404).json({ message: 'Listing not found' });
-  if (!name || !/^[6-9]\d{9}$/.test(phone || '')) return res.status(400).json({ message: 'Enter your name and a valid 10-digit mobile' });
-  db.insert('enquiries', { businessId, businessName: b.name, ownerId: b.ownerId || null, name, phone, message: String(message || '').slice(0, 1000), userId: req.user?._id, status: 'new' }, 'enq');
+  const nm = clean(name, 60);
+  if (nm.length < 2 || !isPhone(phone)) return res.status(400).json({ message: 'Enter your name and a valid 10-digit mobile' });
+  if (db.find('enquiries', (e) => e.businessId === businessId && e.phone === phone && Date.now() - new Date(e.createdAt || 0) < 10 * 60e3).length) return res.status(429).json({ message: 'You already sent an enquiry to this business a moment ago' });
+  db.insert('enquiries', { businessId, businessName: b.name, ownerId: b.ownerId || null, name: nm, phone, message: clean(message, 1000), userId: req.user?._id, status: 'new' }, 'enq');
   db.update('businesses', b._id, { leads: (b.leads || 0) + 1 });
   if (b.ownerId) {
-    notify(b.ownerId, 'New enquiry', `${name} enquired about ${b.name}`, 'inbox');
-    if (isPremium(b)) sendWhatsApp(b.contact?.whatsapp || b.contact?.phone, `PVRS HUB: New enquiry for "${b.name}" from ${name}. Check your dashboard.`);
+    notify(b.ownerId, 'New enquiry', `${nm} enquired about ${b.name}`, 'inbox');
+    if (isPremium(b)) sendWhatsApp(b.contact?.whatsapp || b.contact?.phone, `PVRS HUB: New enquiry for "${b.name}" from ${nm}. Check your dashboard.`);
   }
   res.status(201).json({ message: 'Enquiry sent! The business will contact you soon.' });
 });

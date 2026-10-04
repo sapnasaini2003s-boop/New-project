@@ -7,9 +7,13 @@ const db = require('./src/db');
 const { sendStored } = require('./src/util');
 const app = express();
 const STARTED = Date.now(); app.locals.started = STARTED;
+app.set('trust proxy', 1);
+const { limit, headers } = require('./src/guard');
+app.use(headers);
 app.use(cors()); // Bearer-token auth (no cookies) so open CORS is safe
 app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use('/api', limit('global', 400, 60e3));
 app.get('/uploads/public/:name', (req, res, next) => sendStored('public', req.params.name, res).catch(next));
 
 app.get('/', (req, res) => res.json({ message: 'PVRS HUB API running', storage: db.mode() }));
@@ -22,7 +26,8 @@ app.use('/api/admin', require('./src/routes/admin'));
 
 app.use((err, req, res, next) => {
   console.error(err.message);
-  res.status(err.status || 400).json({ message: err.message || 'Server error' });
+  const m = err.code === 'LIMIT_FILE_SIZE' ? 'File too large (max 5 MB)' : err.type === 'entity.parse.failed' ? 'Invalid request data' : err.message;
+  res.status(err.status || 400).json({ message: m || 'Server error' });
 });
 
 const PORT = process.env.PORT || 5000;

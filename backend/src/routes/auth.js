@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const db = require('../db');
 const { sign, auth, features } = require('../util');
+const { limit, clean, isEmail } = require('../guard');
 
 const otps = new Map(); // phone -> {otp, exp, tries}
 const valid = (p) => /^[6-9]\d{9}$/.test(p || '');
@@ -23,7 +24,7 @@ router.get('/policy', (req, res) => {
   const p = policy(phone, intent); res.json({ otp: p.otp, error: p.error });
 });
 
-router.post('/request-otp', (req, res) => {
+router.post('/request-otp', limit('otp-ip', 20, 3600e3), limit('otp', 4, 10 * 60e3, (r) => r.body.phone), (req, res) => {
   const { phone, intent } = req.body;
   if (!valid(phone)) return res.status(400).json({ message: 'Enter a valid 10-digit Indian mobile number' });
   const p = policy(phone, intent);
@@ -46,8 +47,9 @@ async function verifyFirebase(idToken) {
 }
 
 // Single endpoint for login + signup. intent: 'user' | 'vendor'
-router.post('/verify-otp', async (req, res) => {
+router.post('/verify-otp', limit('verify', 30, 10 * 60e3), async (req, res) => {
   let { phone, otp, name, intent, firebaseToken } = req.body;
+  name = clean(name, 60); intent = intent === 'vendor' ? 'vendor' : 'user';
   let firebaseUid;
   if (!valid(phone) && !firebaseToken) return res.status(400).json({ message: 'Enter a valid 10-digit Indian mobile number' });
   const pol = firebaseToken ? { otp: true } : policy(phone, intent);
@@ -88,8 +90,28 @@ router.post('/verify-otp', async (req, res) => {
 
 router.get('/me', auth(), (req, res) => res.json(req.user));
 router.put('/me', auth(), (req, res) => {
-  const { name, email } = req.body;
-  res.json(db.update('users', req.user._id, { name, email }));
+  const name = clean(req.body.name, 60), email = clean(req.body.email, 100);
+  if (req.body.email && !isEmail(email)) return res.status(400).json({ message: 'Invalid email address' });
+  res.json(db.update('users', req.user._id, { ...(name && { name }), ...(req.body.email !== undefined && { email }) }));
+});
+
+// ---- Data rights (DPDP Act): download my data / delete my account ----
+router.get('/export', auth(), (req, res) => {
+  const u = req.user._id;
+  const mine = (c, f) => db.find(c, f);
+  res.set('Content-Disposition', 'attachment; filename="my-pvrs-data.json"');
+  res.json({ exportedAt: new Date().toISOString(), profile: req.user, listings: mine('businesses', (b) => b.ownerId === u).map(({ documents, ...b }) => b),
+    reviews: mine('reviews', (r) => r.userId === u), enquiries: mine('enquiries', (e) => e.userId === u || e.ownerId === u), favorites: mine('favorites', (f) => f.userId === u), payments: mine('payments', (p) => p.userId === u) });
+});
+router.delete('/me', auth(), (req, res) => {
+  if (['admin', 'moderator'].includes(req.user.role)) return res.status(403).json({ message: 'Admin accounts cannot be deleted here' });
+  if (req.body?.confirm !== 'DELETE') return res.status(400).json({ message: 'Type DELETE to confirm' });
+  const u = req.user._id;
+  db.find('businesses', (b) => b.ownerId === u).forEach((b) => db.update('businesses', b._id, { status: 'suspended', suspendReason: 'Owner deleted account' }));
+  db.find('favorites', (f) => f.userId === u).forEach((f) => db.remove('favorites', f._id));
+  db.find('reviews', (r) => r.userId === u).forEach((r) => db.update('reviews', r._id, { name: 'Deleted user', phone: '', userId: null }));
+  db.log('account_deleted', u, { phone: req.user.phone }); db.remove('users', u);
+  res.json({ message: 'Your account has been deleted.' });
 });
 
 module.exports = router;

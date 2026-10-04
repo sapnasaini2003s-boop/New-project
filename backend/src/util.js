@@ -42,6 +42,7 @@ const mem = multer({
 });
 
 async function storeFile(f) {
+  if (!require('./guard').sniff(f.buffer, f.mimetype)) throw Object.assign(new Error('File content does not match its type. Upload a real JPG, PNG, WEBP or PDF.'), { status: 400 });
   const kind = f.fieldname === 'document' ? 'private' : 'public';
   const name = Date.now() + '-' + crypto.randomBytes(5).toString('hex') + ALLOWED[f.mimetype];
   

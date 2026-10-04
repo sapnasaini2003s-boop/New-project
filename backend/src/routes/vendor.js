@@ -1,6 +1,7 @@
 // Vendor (business owner) dashboard APIs. Every create/edit goes to the admin Pending Review queue.
 const router = require('express').Router();
 const db = require('../db');
+const { cleanBiz } = require('../guard');
 const { cleanHours, features, requireFeature, auth, upload, fileUrl, isPremium, parseJSON, pick, EDITABLE, notify } = require('../util');
 
 router.use(auth());
@@ -23,6 +24,7 @@ function buildData(req, premium, existing = {}) {
     contact: parseJSON(body.contact, undefined), orderOnline: parseJSON(body.orderOnline, undefined),
     videos: parseJSON(body.videos, undefined),
   }, EDITABLE);
+  cleanBiz(d, { create: !existing._id });
   const f = req.files || {};
   if (f.profileImage) d.profileImage = fileUrl(f.profileImage[0]);
   if (f.document) {
@@ -40,8 +42,7 @@ function buildData(req, premium, existing = {}) {
     if (f.bannerImage) d.bannerImage = fileUrl(f.bannerImage[0]);
   }
   if (d.documents?.expiry && new Date(d.documents.expiry) < new Date(new Date().toDateString())) { const e = new Error('Licence expiry date is already in the past — please upload a valid (renewed) certificate'); e.status = 400; throw e; }
-  if (d.contact && d.contact.phone && !/^[6-9]\d{9}$/.test(d.contact.phone)) { const e = new Error('Invalid business phone'); e.status = 400; throw e; }
-  return d;
+    return d;
 }
 
 router.get('/listings', (req, res) => res.json(mine(req)));
@@ -53,6 +54,9 @@ router.post('/listings', notMaint, files, (req, res) => {
     if (!req.files?.document) return res.status(400).json({ message: 'Upload Trade License / FSSAI / KMC Registration Certificate (JPG, PNG or PDF) is mandatory' });
     const d = buildData(req, false);
     if (!d.name || !d.category || !d.city) return res.status(400).json({ message: 'Name, category and city are required' });
+    const ph = d.contact?.phone;
+    const dup = db.find('businesses', (b) => b.status !== 'rejected' && ((ph && b.contact?.phone === ph && b.ownerId !== req.user._id) || (b.ownerId === req.user._id && b.name?.toLowerCase() === d.name.toLowerCase() && (b.city || '').toLowerCase() === (d.city || '').toLowerCase())))[0];
+    if (dup) return res.status(409).json({ message: dup.ownerId === req.user._id ? 'You already added this business.' : 'A listing with this phone number already exists. If it is your business, open it and use "Claim this listing".' });
     if (req.user.role === 'user') db.update('users', req.user._id, { role: 'vendor', status: 'pending' });
     const b = db.insert('businesses', { ...d, ownerId: req.user._id, plan: 'free', status: 'pending', views: 0, leads: 0, rating: 0 }, 'biz');
     db.log('listing_submitted', req.user._id, { id: b._id });

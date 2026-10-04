@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const db = require('../db');
 const { cleanHours, features, FEATURE_DEFAULTS, auth, role, upload, fileUrl, sendStored, notify, parseJSON, UP, isPremium } = require('../util');
+const { cleanBiz } = require('../guard');
 const { runExpiryJob } = require('../jobs');
 
 // Private document viewer (token via ?token= so it opens in new tab)
@@ -130,13 +131,19 @@ function adminData(req) {
 }
 // Admin can pre-load a business (unclaimed -> shows "Claim it now" badge)
 router.post('/businesses', imgFields, (req, res) => {
-  const d = adminData(req);
+  let d; try { d = cleanBiz(adminData(req), { create: true }); } catch (e) { return res.status(400).json({ message: e.message }); }
   if (!d.name || !d.category) return res.status(400).json({ message: 'Name & category required' });
   const b = db.insert('businesses', { plan: 'free', unclaimed: true, ...d, status: 'approved', approvedOnce: true, views: 0, leads: 0 }, 'biz');
   res.status(201).json(b);
 });
-router.put('/businesses/:id', imgFields, (req, res) => res.json(db.update('businesses', req.params.id, adminData(req))));
-router.delete('/businesses/:id', (req, res) => res.json({ ok: db.remove('businesses', req.params.id) }));
+router.put('/businesses/:id', imgFields, (req, res) => {
+  try { res.json(db.update('businesses', req.params.id, cleanBiz(adminData(req), { create: false }))); } catch (e) { res.status(400).json({ message: e.message }); }
+});
+router.delete('/businesses/:id', (req, res) => {
+  const b = db.get('businesses', req.params.id);
+  if (b) db.log('business_deleted', req.user._id, { id: b._id, name: b.name, snapshot: b }); // recoverable from Activity Log
+  res.json({ ok: db.remove('businesses', req.params.id) });
+});
 
 // ---- users ----
 router.get('/users', (req, res) => res.json(db.all('users').slice().reverse()));
@@ -330,6 +337,13 @@ router.put('/settings', (req, res) => res.json(db.setSettings(req.body)));
 
 router.get('/payments', (req, res) => res.json(db.all('payments').slice().reverse()));
 router.get('/notifications', (req, res) => res.json(db.all('notifications').slice(-100).reverse()));
+router.post('/restore/:id', (req, res) => {
+  const l = db.get('audit', req.params.id);
+  if (!l || l.action !== 'business_deleted' || !l.meta?.snapshot) return res.status(404).json({ message: 'Nothing to restore' });
+  if (db.get('businesses', l.meta.id)) return res.status(400).json({ message: 'Business already exists' });
+  const b = db.insert('businesses', l.meta.snapshot, 'biz'); db.update('audit', l._id, { action: 'business_restored' });
+  res.json({ message: `Restored "${b.name}"` });
+});
 router.get('/audit', (req, res) => res.json(db.all('audit').slice(-100).reverse()));
 router.post('/run-expiry-job', (req, res) => { const r = runExpiryJob(); res.json({ ...r, message: `Expiry check done — warned ${r.warned}, downgraded ${r.downgraded}, suspended ${r.suspended}` }); });
 
