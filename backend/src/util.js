@@ -142,11 +142,11 @@ function notify(userId, title, message, channel = 'email') {
 
 // ---------- Feature switches (Admin → Feature Controls) ----------
 const FEATURE_DEFAULTS = {
-  customerLogin: false,   // customers browse/review/enquire WITHOUT login (no OTP signup)
+  customerLogin: true,    // customers log in (OTP always required) to review / report / raise grievances
   vendorSignup: true,     // new business owners can register
   vendorOtp: true,        // vendors must verify OTP (admin login ALWAYS needs OTP)
-  reviews: true, guestReviews: true, enquiries: true, favorites: true, claims: true,
-  bannerBooking: true, premiumUpgrade: true, reports: true, orderOnline: true,
+  reviews: true, enquiries: true, favorites: true, claims: true,
+  bannerBooking: true, premiumUpgrade: true, reports: false, complaintForm: false, orderOnline: true,
   maintenance: false,     // shows maintenance banner + blocks vendor submissions
 };
 const features = () => ({ ...FEATURE_DEFAULTS, ...(db.settings().features || {}) });

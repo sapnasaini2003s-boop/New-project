@@ -11,9 +11,9 @@ function policy(phone, intent) {
   const existing = db.find('users', (u) => u.phone === phone)[0];
   const isAdmin = phone === process.env.ADMIN_PHONE || existing?.role === 'admin' || existing?.role === 'moderator';
   const role = isAdmin ? 'admin' : existing?.role === 'vendor' || intent === 'vendor' ? 'vendor' : 'user';
-  if (role === 'user' && !f.customerLogin) return { error: 'Customer login is disabled. You can browse, review and enquire without an account.' };
+  if (role === 'user' && !f.customerLogin) return { error: 'Customer login is currently disabled by admin.' };
   if (role === 'vendor' && !existing && !f.vendorSignup) return { error: 'New business registrations are paused. Please try again later.' };
-  const otp = role === 'admin' ? true : role === 'vendor' ? f.vendorOtp : f.customerOtp !== false;
+  const otp = role === 'admin' ? true : role === 'vendor' ? f.vendorOtp : true;
   return { role, otp, existing };
 }
 

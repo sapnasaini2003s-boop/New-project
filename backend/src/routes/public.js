@@ -132,6 +132,16 @@ router.post('/contact', (req, res) => {
 });
 
 
+// ---------- Grievance (login required) ----------
+router.post('/grievances', auth(true), (req, res) => {
+  const { kind, details } = req.body; const text = String(details || '').trim();
+  if (text.length < 5) return res.status(400).json({ message: 'Please write your query' });
+  const issue = kind === 'issue';
+  db.insert('reports', { type: issue ? 'issue' : 'grievance', businessId: null, businessName: issue ? 'Reported issue' : 'Grievance redressal', reason: issue ? 'Issue' : 'Grievance', details: text.slice(0, 2000), name: req.user.name, phone: req.user.phone, userId: req.user._id, status: 'pending' }, 'rep');
+  notify(null, issue ? 'New issue reported' : 'New grievance', `${req.user.name || req.user.phone}: ${text.slice(0, 120)}`, 'inbox');
+  res.status(201).json({ message: 'Submitted. Our team will act on it within 24-48 hours.' });
+});
+
 // ---------- Search suggestions ----------
 router.get('/suggest', (req, res) => {
   const t = String(req.query.q || '').toLowerCase().trim(); if (t.length < 2) return res.json([]);
@@ -149,31 +159,25 @@ router.get('/businesses/:id/reviews', (req, res) => {
   res.json(db.find('reviews', (r) => r.businessId === req.params.id && r.status === 'approved').slice(-50).reverse()
     .map((r) => ({ _id: r._id, name: r.name, rating: r.rating, text: r.text, createdAt: r.createdAt })));
 });
-router.post('/reviews', auth(false), requireFeature('reviews', 'Reviews are currently disabled'), (req, res) => {
-  const f = features();
+router.post('/reviews', auth(true), requireFeature('reviews', 'Reviews are currently disabled'), (req, res) => {
   const { businessId, rating, text } = req.body; const b = db.get('businesses', businessId);
   const n = Number(rating);
   if (!b || !live(b)) return res.status(404).json({ message: 'Listing not found' });
   if (!(n >= 1 && n <= 5)) return res.status(400).json({ message: 'Rating must be 1–5' });
-  let name = req.user?.name, phone = req.user?.phone;
-  if (!req.user) {
-    if (!f.guestReviews) return res.status(401).json({ message: 'Please login to write a review' });
-    name = String(req.body.name || '').trim(); phone = String(req.body.phone || '');
-    if (!name || !/^[6-9]\d{9}$/.test(phone)) return res.status(400).json({ message: 'Enter your name and a valid 10-digit mobile' });
-  }
-  if (req.user && b.ownerId === req.user._id) return res.status(400).json({ message: 'You cannot review your own business' });
+  const name = req.user.name, phone = req.user.phone;
+  if (b.ownerId === req.user._id) return res.status(400).json({ message: 'You cannot review your own business' });
   if (db.find('reviews', (r) => r.businessId === businessId && r.phone === phone && r.status !== 'rejected').length)
     return res.status(400).json({ message: 'You have already reviewed this business' });
-  db.insert('reviews', { businessId, businessName: b.name, userId: req.user?._id || null, name: name || 'Customer', phone, rating: n, text: String(text || '').slice(0, 1000), status: 'pending', guest: !req.user }, 'rev');
+  db.insert('reviews', { businessId, businessName: b.name, userId: req.user._id, name: name || 'Customer', phone, rating: n, text: String(text || '').slice(0, 1000), status: 'pending' }, 'rev');
   res.status(201).json({ message: 'Thanks! Your review will appear after moderation.' });
 });
 
 // ---------- Report a listing (Section 79 takedown / spam) ----------
-router.post('/reports', auth(false), requireFeature('reports'), (req, res) => {
+router.post('/reports', auth(true), requireFeature('reports', 'Reporting is currently disabled'), (req, res) => {
   const { businessId, reason, details, name, phone } = req.body; const b = db.get('businesses', businessId);
   if (!b) return res.status(404).json({ message: 'Listing not found' });
   if (!reason) return res.status(400).json({ message: 'Select a reason' });
-  db.insert('reports', { businessId, businessName: b.name, reason, details: String(details || '').slice(0, 1000), name: name || req.user?.name, phone: phone || req.user?.phone, status: 'pending' }, 'rep');
+  db.insert('reports', { businessId, businessName: b.name, reason, details: String(details || '').slice(0, 1000), name: req.user?.name || name, phone: req.user?.phone || phone, userId: req.user._id, status: 'pending' }, 'rep');
   notify(null, 'Listing reported', `${b.name}: ${reason}`, 'inbox');
   res.status(201).json({ message: 'Report submitted. Our team will review it within 24 hours.' });
 });
