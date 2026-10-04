@@ -143,6 +143,9 @@ router.post('/grievances', limit('grv', 8, 3600e3), auth(true), (req, res) => {
   res.status(201).json({ message: 'Submitted. Our team will act on it within 24-48 hours.' });
 });
 
+router.get('/grievances/mine', auth(true), (req, res) =>
+  res.json(db.find('reports', (r) => r.userId === req.user._id).slice().reverse().map(({ _id, type, reason, details, status, response, createdAt, resolvedAt }) => ({ _id, type: type || 'listing', reason, details, status, response, createdAt, resolvedAt }))));
+
 // ---------- Search suggestions ----------
 router.get('/suggest', (req, res) => {
   const t = String(req.query.q || '').toLowerCase().trim(); if (t.length < 2) return res.json([]);

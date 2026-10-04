@@ -203,8 +203,12 @@ router.get('/enquiries', (req, res) => res.json(db.all('enquiries').slice().reve
 // ---- reports (takedown / spam) ----
 router.put('/reports/:id', (req, res) => {
   const r = db.get('reports', req.params.id); if (!r) return res.status(404).json({ message: 'Not found' });
-  if (req.body.action === 'suspend') db.update('businesses', r.businessId, { status: 'suspended', suspendReason: `Reported: ${r.reason}` });
-  db.update('reports', r._id, { status: req.body.action === 'dismiss' ? 'dismissed' : 'resolved', resolvedAt: new Date().toISOString() });
+  const act = req.body.action;
+  if (act === 'suspend') { if (!r.businessId || !db.get('businesses', r.businessId)) return res.status(400).json({ message: 'No listing attached to this item' }); db.update('businesses', r.businessId, { status: 'suspended', suspendReason: `Reported: ${r.reason}` }); }
+  const response = String(req.body.response || '').trim().slice(0, 1000);
+  if (act !== 'suspend' && r.type && !response) return res.status(400).json({ message: 'Write a short reply for the customer' });
+  db.update('reports', r._id, { status: act === 'dismiss' ? 'dismissed' : 'resolved', response, resolvedAt: new Date().toISOString() });
+  if (r.userId && response) notify(r.userId, 'Update on your complaint', response, 'email');
   db.log('report_' + (req.body.action || 'resolve'), req.user._id, { id: r._id, businessId: r.businessId });
   res.json({ message: 'Done' });
 });
