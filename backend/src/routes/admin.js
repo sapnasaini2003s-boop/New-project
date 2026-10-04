@@ -3,7 +3,7 @@ const router = require('express').Router();
 const path = require('path');
 const fs = require('fs');
 const db = require('../db');
-const { features, FEATURE_DEFAULTS, auth, role, upload, fileUrl, sendStored, notify, parseJSON, UP, isPremium } = require('../util');
+const { cleanHours, features, FEATURE_DEFAULTS, auth, role, upload, fileUrl, sendStored, notify, parseJSON, UP, isPremium } = require('../util');
 const { runExpiryJob } = require('../jobs');
 
 // Private document viewer (token via ?token= so it opens in new tab)
@@ -117,7 +117,7 @@ function adminData(req) {
   const b = req.body, f = req.files || {};
   const d = {
     name: b.name, description: b.description, category: b.category, subCategory: b.subCategory, city: b.city, address: b.address,
-    timings: b.timings, contact: parseJSON(b.contact, undefined), orderOnline: parseJSON(b.orderOnline, undefined), videos: parseJSON(b.videos, undefined),
+    timings: b.timings, hours: cleanHours(parseJSON(b.hours, undefined)), contact: parseJSON(b.contact, undefined), orderOnline: parseJSON(b.orderOnline, undefined), videos: parseJSON(b.videos, undefined),
     plan: b.plan, planExpiry: b.planExpiry || undefined, rating: b.rating ? Number(b.rating) : undefined, reviews: b.reviews ? Number(b.reviews) : undefined,
     unclaimed: b.unclaimed === undefined ? undefined : b.unclaimed === 'true' || b.unclaimed === true,
     tags: b.tags ? String(b.tags).split(',').map((s) => s.trim()).filter(Boolean) : undefined,
@@ -227,7 +227,7 @@ router.get('/system', (req, res) => {
   const mig = require('../migrations'); const mem = process.memoryUsage(); const env = process.env;
   const counts = {}; for (const c of ['users', 'businesses', 'categories', 'ads', 'payments', 'leads', 'claims', 'reviews', 'enquiries', 'reports', 'favorites', 'offers', 'blogs', 'videos', 'notifications', 'audit']) counts[c] = db.all(c).length;
   res.json({
-    storage: db.mode(), node: process.version, uptimeSec: Math.round(process.uptime()), memoryMB: Math.round(mem.rss / 1048576), env: env.NODE_ENV || 'development',
+    storage: db.mode(), failedWrites: db.failedWrites(), node: process.version, uptimeSec: Math.round(process.uptime()), memoryMB: Math.round(mem.rss / 1048576), env: env.NODE_ENV || 'development',
     counts, migrations: mig.status(), tasks: Object.entries(mig.TASKS).map(([id, t]) => ({ id, name: t.name })),
     jobs: db.settings().jobs || {},
     integrations: [

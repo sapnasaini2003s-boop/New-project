@@ -1,7 +1,7 @@
 // Vendor (business owner) dashboard APIs. Every create/edit goes to the admin Pending Review queue.
 const router = require('express').Router();
 const db = require('../db');
-const { features, requireFeature, auth, upload, fileUrl, isPremium, parseJSON, pick, EDITABLE, notify } = require('../util');
+const { cleanHours, features, requireFeature, auth, upload, fileUrl, isPremium, parseJSON, pick, EDITABLE, notify } = require('../util');
 
 router.use(auth());
 const notMaint = (req, res, next) => (features().maintenance ? res.status(503).json({ message: 'Site is under maintenance. Submissions are paused, please try later.' }) : next());
@@ -18,7 +18,7 @@ function buildData(req, premium, existing = {}) {
   const body = req.body;
   const d = pick({
     name: body.name, description: body.description, category: body.category, subCategory: body.subCategory,
-    city: body.city, address: body.address, timings: body.timings,
+    city: body.city, address: body.address, timings: body.timings, hours: cleanHours(parseJSON(body.hours, undefined)),
     tags: body.tags ? String(body.tags).split(',').map((s) => s.trim()).filter(Boolean) : undefined,
     contact: parseJSON(body.contact, undefined), orderOnline: parseJSON(body.orderOnline, undefined),
     videos: parseJSON(body.videos, undefined),
@@ -39,6 +39,7 @@ function buildData(req, premium, existing = {}) {
     else if (body.keepGallery) d.gallery = parseJSON(body.keepGallery, []);
     if (f.bannerImage) d.bannerImage = fileUrl(f.bannerImage[0]);
   }
+  if (d.documents?.expiry && new Date(d.documents.expiry) < new Date(new Date().toDateString())) { const e = new Error('Licence expiry date is already in the past — please upload a valid (renewed) certificate'); e.status = 400; throw e; }
   if (d.contact && d.contact.phone && !/^[6-9]\d{9}$/.test(d.contact.phone)) { const e = new Error('Invalid business phone'); e.status = 400; throw e; }
   return d;
 }

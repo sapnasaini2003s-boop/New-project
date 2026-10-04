@@ -33,22 +33,27 @@ function saveFile() {
   }, 50);
 }
 
-function track(p) { 
-  pending.add(p); 
-  p.catch((e) => console.error('[db] pg write failed:', e.message)).finally(() => pending.delete(p)); 
+function track(p, retry, attempt = 1) {
+  pending.add(p);
+  p.catch((e) => {
+    console.error(`[db] pg write failed (attempt ${attempt}):`, e.message);
+    failedWrites++;
+    if (retry && attempt < 4) setTimeout(() => track(retry(), retry, attempt + 1), attempt * 2000);
+  }).finally(() => pending.delete(p));
 }
+let failedWrites = 0;
 
 const persist = {
   upsert(c, doc) { 
-    if (pgPool) track(pgPool.query(`INSERT INTO docs (c, id, doc) VALUES ($1, $2, $3) ON CONFLICT (c, id) DO UPDATE SET doc = EXCLUDED.doc`, [c, doc._id, doc])); 
+    if (pgPool) { const q = () => pgPool.query(`INSERT INTO docs (c, id, doc) VALUES ($1, $2, $3) ON CONFLICT (c, id) DO UPDATE SET doc = EXCLUDED.doc`, [c, doc._id, doc]); track(q(), q); } 
     else saveFile(); 
   },
   remove(c, _id) { 
-    if (pgPool) track(pgPool.query(`DELETE FROM docs WHERE c = $1 AND id = $2`, [c, _id])); 
+    if (pgPool) { const q = () => pgPool.query(`DELETE FROM docs WHERE c = $1 AND id = $2`, [c, _id]); track(q(), q); } 
     else saveFile(); 
   },
   settings() { 
-    if (pgPool) track(pgPool.query(`INSERT INTO settings (id, doc) VALUES ('site', $1) ON CONFLICT (id) DO UPDATE SET doc = EXCLUDED.doc`, [state.settings])); 
+    if (pgPool) { const q = () => pgPool.query(`INSERT INTO settings (id, doc) VALUES ('site', $1) ON CONFLICT (id) DO UPDATE SET doc = EXCLUDED.doc`, [state.settings]); track(q(), q); } 
     else saveFile(); 
   },
 };
@@ -59,8 +64,13 @@ async function init() {
     try {
       const { Pool } = require('pg');
       // Render sets DATABASE_URL, which usually requires SSL
-      pgPool = new Pool({ connectionString: uri, ssl: { rejectUnauthorized: false } });
-      await pgPool.query('SELECT 1'); // Test connection
+      pgPool = new Pool({ connectionString: uri, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 15000 });
+      pgPool.on('error', (e) => console.error('[db] pg pool error:', e.message));
+      // Render Postgres can be slow to wake up — retry instead of silently falling back to a local file
+      for (let i = 1; ; i++) {
+        try { await pgPool.query('SELECT 1'); break; }
+        catch (e) { if (i >= 8) throw e; console.warn(`[db] Postgres not ready (attempt ${i}/8): ${e.message}`); await new Promise((r) => setTimeout(r, i * 3000)); }
+      }
 
       // Create tables
       await pgPool.query(`
@@ -91,8 +101,10 @@ async function init() {
       console.log(`[db] Postgres connected — data is persistent`);
       return 'pg';
     } catch (e) {
-      console.error(`[db] Postgres connection failed (${e.message}). Falling back to data/db.json`);
-      pgPool = null;
+      // IMPORTANT: never fall back to the file when DATABASE_URL is set — data written there would be
+      // lost and the real DB would look "deleted" on the next restart. Crash so Render restarts us.
+      console.error(`[db] Postgres connection FAILED (${e.message}). Refusing to start without the database.`);
+      process.exit(1);
     }
   }
   
@@ -116,6 +128,7 @@ const now = () => new Date().toISOString();
 const db = {
   init,
   mode: () => (pgPool ? 'pg' : 'file'),
+  failedWrites: () => failedWrites,
   pg: () => pgPool,
   all: (c) => load()[c],
   find: (c, fn) => load()[c].filter(fn),
@@ -144,7 +157,8 @@ const db = {
     if (pgPool) await Promise.allSettled([...pending]);
     else { clearTimeout(timer); fs.mkdirSync(path.dirname(FILE), { recursive: true }); fs.writeFileSync(FILE, JSON.stringify(load(), null, 2)); }
   },
-  isEmpty: () => load().categories.length === 0,
+  // Fresh install only: no categories, no businesses and no users at all
+  isEmpty: () => { const s = load(); return !s.categories.length && !s.businesses.length && !s.users.length; },
   log(action, by, meta = {}) { db.insert('audit', { action, by, meta }, 'log'); },
 };
 module.exports = db;

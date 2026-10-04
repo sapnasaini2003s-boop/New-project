@@ -85,7 +85,7 @@ const isPremium = (b) => b.plan === 'premium' && (!b.planExpiry || new Date(b.pl
 
 // Fields a vendor may edit (anything else is admin-only)
 const EDITABLE = ['name', 'description', 'category', 'subCategory', 'city', 'address', 'contact', 'orderOnline',
-  'profileImage', 'gallery', 'bannerImage', 'videos', 'timings', 'tags', 'documents'];
+  'profileImage', 'gallery', 'bannerImage', 'videos', 'timings', 'hours', 'tags', 'documents'];
 
 // Public view: enforce free-tier lead hiding & media hardlock. NEVER expose pendingUpdates/documents.
 function publicBiz(b, full = false) {
@@ -95,7 +95,7 @@ function publicBiz(b, full = false) {
     city: b.city, address: full ? b.address : undefined, profileImage: b.profileImage || b.image, badge: b.badge,
     mapUrl: full && (b.address || b.city) ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([b.name, b.address, b.city].filter(Boolean).join(', '))}` : undefined, rating: b.rating || 0,
     reviews: b.reviews || 0, verified: !!b.verified, plan: prem ? 'premium' : 'free', unclaimed: !!b.unclaimed,
-    timings: b.timings, tags: b.tags, featured: prem,
+    timings: b.timings, hours: b.hours, tags: b.tags, featured: prem,
     orderOnline: b.orderOnline && (b.orderOnline.swiggy || b.orderOnline.zomato) ? b.orderOnline : undefined,
   };
   if (prem && !b.unclaimed) {
@@ -152,4 +152,15 @@ const FEATURE_DEFAULTS = {
 const features = () => ({ ...FEATURE_DEFAULTS, ...(db.settings().features || {}) });
 const requireFeature = (k, msg) => (req, res, next) => (features()[k] ? next() : res.status(403).json({ message: msg || 'This feature is currently disabled by admin' }));
 
-module.exports = { getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };
+// Weekly hours: { mon: { open: true, from: '09:00', to: '21:00' }, ... } — validated & normalised
+const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+function cleanHours(h) {
+  if (!h || typeof h !== 'object') return undefined;
+  const out = {}; const t = /^([01]\d|2[0-3]):[0-5]\d$/;
+  for (const d of DAYS) {
+    const x = h[d] || {};
+    out[d] = x.open && t.test(x.from) && t.test(x.to) ? { open: true, from: x.from, to: x.to, ...(x.allDay ? { allDay: true } : {}) } : { open: false };
+  }
+  return out;
+}
+module.exports = { cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };

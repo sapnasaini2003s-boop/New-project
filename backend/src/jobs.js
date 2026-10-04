@@ -22,10 +22,14 @@ function runExpiryJob() {
     const exp = b.documents?.expiry;
     if (exp && b.status === 'approved') {
       const left = new Date(exp) - t;
-      if (left <= 0) {
+      // 7-day grace after expiry before the listing is hidden (avoids surprise 'disappearing' listings)
+      if (left <= -7 * DAY) {
         db.update('businesses', b._id, { status: 'suspended', suspendReason: 'License / certificate expired. Upload renewed document.' }); r.suspended++;
         notify(b.ownerId, 'Listing suspended', `${b.name}: your licence expired. Upload the renewed certificate to restore.`);
-      } else if (left < 15 * DAY && warned.doc !== exp) {
+      } else if (left <= 0 && warned.docExpired !== exp) {
+        db.update('businesses', b._id, { warned: { ...(b.warned || {}), docExpired: exp } }); r.warned++;
+        notify(b.ownerId, 'Licence expired — 7 days to renew', `${b.name}: your licence expired on ${new Date(exp).toDateString()}. Upload the renewal within 7 days or the listing will be hidden.`);
+      } else if (left > 0 && left < 15 * DAY && warned.doc !== exp) {
         db.update('businesses', b._id, { warned: { ...(db.get('businesses', b._id).warned || {}), doc: exp } }); r.warned++;
         notify(b.ownerId, 'Licence expiring soon', `${b.name}: licence expires on ${new Date(exp).toDateString()}. Please upload renewal.`);
       }
