@@ -9,7 +9,7 @@ const valid = (p) => /^[6-9]\d{9}$/.test(p || '');
 function policy(phone, intent) {
   const f = features();
   const existing = db.find('users', (u) => u.phone === phone)[0];
-  const isAdmin = phone === process.env.ADMIN_PHONE || existing?.role === 'admin';
+  const isAdmin = phone === process.env.ADMIN_PHONE || existing?.role === 'admin' || existing?.role === 'moderator';
   const role = isAdmin ? 'admin' : existing?.role === 'vendor' || intent === 'vendor' ? 'vendor' : 'user';
   if (role === 'user' && !f.customerLogin) return { error: 'Customer login is disabled. You can browse, review and enquire without an account.' };
   if (role === 'vendor' && !existing && !f.vendorSignup) return { error: 'New business registrations are paused. Please try again later.' };

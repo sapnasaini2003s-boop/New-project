@@ -6,6 +6,7 @@ const path = require('path');
 const db = require('./src/db');
 const { sendStored } = require('./src/util');
 const app = express();
+const STARTED = Date.now(); app.locals.started = STARTED;
 app.use(cors()); // Bearer-token auth (no cookies) so open CORS is safe
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -28,6 +29,7 @@ const PORT = process.env.PORT || 5000;
 (async () => {
   await db.init();
   await require('./src/seed')(false); // seeds only when DB is empty
+  require('./src/migrations').runPending();
   require('./src/jobs').start();
   app.listen(PORT, () => console.log(`PVRS HUB API on http://localhost:${PORT} (storage: ${db.mode()})`));
 })();

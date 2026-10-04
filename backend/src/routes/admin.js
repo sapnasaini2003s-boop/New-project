@@ -7,11 +7,15 @@ const { features, FEATURE_DEFAULTS, auth, role, upload, fileUrl, sendStored, not
 const { runExpiryJob } = require('../jobs');
 
 // Private document viewer (token via ?token= so it opens in new tab)
-router.get('/files/private/:name', auth(), role('admin'), (req, res, next) => {
+router.get('/files/private/:name', auth(), role('admin', 'moderator'), (req, res, next) => {
   sendStored('private', req.params.name, res).catch(next);
 });
 
-router.use(auth(), role('admin'));
+router.use(auth(), role('admin', 'moderator'));
+// Moderators can only work the approval queues; everything else is super-admin only
+const MOD_OK = [/^\/queue/, /^\/listings\//, /^\/reviews/, /^\/reports/, /^\/claims/, /^\/enquiries/, /^\/overview/, /^\/me$/];
+router.use((req, res, next) => (req.user.role === 'admin' || MOD_OK.some((r) => r.test(req.path)) ? next() : res.status(403).json({ message: 'Admin only — moderators cannot access this section' })));
+router.get('/me', (req, res) => res.json({ role: req.user.role, name: req.user.name, phone: req.user.phone }));
 
 router.get('/overview', (req, res) => {
   const B = db.all('businesses'), P = db.all('payments').filter((p) => p.status === 'paid');
@@ -198,6 +202,62 @@ router.put('/reports/:id', (req, res) => {
   res.json({ message: 'Done' });
 });
 
+// ---- team / staff ----
+router.get('/team', (req, res) => res.json(db.find('users', (u) => u.role === 'admin' || u.role === 'moderator').map((u) => ({ ...u, superAdmin: u.phone === process.env.ADMIN_PHONE }))));
+router.post('/team', (req, res) => {
+  const { phone, name, role: r = 'moderator', email } = req.body;
+  if (!/^[6-9]\d{9}$/.test(phone || '')) return res.status(400).json({ message: 'Valid 10-digit mobile required' });
+  if (!['admin', 'moderator'].includes(r)) return res.status(400).json({ message: 'Invalid role' });
+  let u = db.find('users', (x) => x.phone === phone)[0];
+  if (u) u = db.update('users', u._id, { role: r, status: 'approved', name: name || u.name, email: email || u.email, blocked: false });
+  else u = db.insert('users', { phone, name: name || '', email, role: r, status: 'approved' }, 'usr');
+  db.log('staff_added', req.user._id, { phone, role: r });
+  res.status(201).json({ message: `${name || phone} added as ${r}. They log in at /admin/login with OTP.`, user: u });
+});
+router.delete('/team/:id', (req, res) => {
+  const u = db.get('users', req.params.id); if (!u) return res.status(404).json({ message: 'Not found' });
+  if (u.phone === process.env.ADMIN_PHONE) return res.status(400).json({ message: 'Super-admin cannot be removed' });
+  if (u._id === req.user._id) return res.status(400).json({ message: 'You cannot remove yourself' });
+  db.update('users', u._id, { role: 'user' }); db.log('staff_removed', req.user._id, { phone: u.phone });
+  res.json({ message: 'Access removed' });
+});
+
+// ---- system: health, integrations, migrations, backups ----
+router.get('/system', (req, res) => {
+  const mig = require('../migrations'); const mem = process.memoryUsage(); const env = process.env;
+  const counts = {}; for (const c of ['users', 'businesses', 'categories', 'ads', 'payments', 'leads', 'claims', 'reviews', 'enquiries', 'reports', 'favorites', 'offers', 'blogs', 'videos', 'notifications', 'audit']) counts[c] = db.all(c).length;
+  res.json({
+    storage: db.mode(), node: process.version, uptimeSec: Math.round(process.uptime()), memoryMB: Math.round(mem.rss / 1048576), env: env.NODE_ENV || 'development',
+    counts, migrations: mig.status(), tasks: Object.entries(mig.TASKS).map(([id, t]) => ({ id, name: t.name })),
+    jobs: db.settings().jobs || {},
+    integrations: [
+      { key: 'database', name: 'Database (Postgres)', ok: db.mode() !== 'file', hint: 'Set DATABASE_URL — otherwise data is saved to a local file and lost on Render restarts' },
+      { key: 'otp', name: 'SMS OTP (Firebase)', ok: env.OTP_MODE === 'firebase' && !!env.FIREBASE_API_KEY, hint: 'OTP_MODE=firebase + FIREBASE_API_KEY (backend) and NEXT_PUBLIC_FIREBASE_* (frontend). Now: test OTP 123456' },
+      { key: 'razorpay', name: 'Razorpay payments', ok: !!(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET), hint: 'RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET. Now: test/mock payments' },
+      { key: 'whatsapp', name: 'WhatsApp lead alerts', ok: !!(env.WHATSAPP_TOKEN && env.WHATSAPP_PHONE_NUMBER_ID), hint: 'WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID (Meta Cloud API)' },
+      { key: 'email', name: 'Email alerts (SMTP)', ok: !!env.SMTP_HOST, hint: 'SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM, ADMIN_EMAIL' },
+      { key: 'jwt', name: 'Secure JWT secret', ok: !!env.JWT_SECRET && !/change|dev-secret/.test(env.JWT_SECRET), hint: 'Set a long random JWT_SECRET' },
+    ],
+  });
+});
+router.post('/system/migrate', (req, res) => res.json({ applied: require('../migrations').runPending(req.user.phone) }));
+router.post('/system/task/:id', (req, res) => {
+  const t = require('../migrations').TASKS[req.params.id]; if (!t) return res.status(404).json({ message: 'Unknown task' });
+  const result = t.run(); db.log('task_' + req.params.id, req.user._id, { result }); res.json({ message: result });
+});
+router.post('/system/test-email', async (req, res) => {
+  const m = require('../util').getMailer(); const to = req.body.to || process.env.ADMIN_EMAIL;
+  if (!m) return res.status(400).json({ message: 'SMTP is not configured (set SMTP_HOST etc.)' });
+  if (!to) return res.status(400).json({ message: 'Enter an email address' });
+  try { await m.sendMail({ from: process.env.MAIL_FROM || process.env.SMTP_USER, to, subject: 'PVRS HUB test email', text: 'SMTP is working 🎉' }); res.json({ message: `Test email sent to ${to}` }); }
+  catch (e) { res.status(500).json({ message: e.message }); }
+});
+router.get('/system/backup', (req, res) => {
+  const out = { exportedAt: new Date().toISOString(), settings: db.settings() };
+  for (const c of ['users', 'businesses', 'categories', 'ads', 'payments', 'leads', 'claims', 'reviews', 'enquiries', 'reports', 'favorites', 'offers', 'blogs', 'videos', 'notifications', 'audit']) out[c] = db.all(c);
+  res.set('Content-Disposition', `attachment; filename="pvrs-backup-${new Date().toISOString().slice(0, 10)}.json"`).json(out);
+});
+
 // ---- feature switches ----
 router.get('/features', (req, res) => res.json(features()));
 router.put('/features', (req, res) => {
@@ -271,6 +331,6 @@ router.put('/settings', (req, res) => res.json(db.setSettings(req.body)));
 router.get('/payments', (req, res) => res.json(db.all('payments').slice().reverse()));
 router.get('/notifications', (req, res) => res.json(db.all('notifications').slice(-100).reverse()));
 router.get('/audit', (req, res) => res.json(db.all('audit').slice(-100).reverse()));
-router.post('/run-expiry-job', (req, res) => res.json(runExpiryJob()));
+router.post('/run-expiry-job', (req, res) => { const r = runExpiryJob(); res.json({ ...r, message: `Expiry check done — warned ${r.warned}, downgraded ${r.downgraded}, suspended ${r.suspended}` }); });
 
 module.exports = router;

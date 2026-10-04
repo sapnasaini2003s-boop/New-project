@@ -52,3 +52,8 @@ search autocomplete, filters & sort on listing pages, Google Maps directions, sh
 On/off switches, applied live: customer login (default OFF — customers browse, review, save & enquire without account/OTP), customer OTP, new business signups, vendor OTP (admin login ALWAYS needs OTP), reviews, guest reviews, enquiries, favourites, claims, report-listing, Order Online, premium purchase, banner booking, maintenance mode. Plus an announcement bar and CSV exports (businesses, users, enquiries, reviews, payments).
 
 Other additions: “Report this listing” (Sec. 79 takedown queue in Approval Queue → Reports), bulk approve, guest favourites saved on device, redesigned login.
+
+## Admin console (latest)
+Sidebar groups: Dashboard · **Analytics** (charts, 7/30/90-day) · Approval Queue · Enquiries & Reviews · Businesses · Categories · Users · Ads · Content · Payments · Homepage · Legal · Feature Controls · **Team & Admins** (add admins / moderators by mobile; moderators only see queue, reviews, reports, enquiries) · **System & Migrations** (DB + integration status, versioned migrations with run button, scheduled-job status, JSON backup, maintenance tasks such as "Remove demo analytics data", SMTP test email) · Notifications & Logs.
+
+Email alerts: set `SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM, ADMIN_EMAIL` — plan/licence expiry, approvals and new-listing alerts are then emailed (HTML template).

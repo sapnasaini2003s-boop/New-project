@@ -113,10 +113,31 @@ function pick(obj, keys) { const o = {}; for (const k of keys) if (obj[k] !== un
 
 function parseJSON(v, fallback) { if (v == null || v === '') return fallback; if (typeof v !== 'string') return v; try { return JSON.parse(v); } catch { return fallback; } }
 
+// Email via SMTP (set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM, ADMIN_EMAIL). Falls back to in-app log.
+let mailer = null;
+function getMailer() {
+  if (mailer !== null) return mailer;
+  if (!process.env.SMTP_HOST) return (mailer = false);
+  try {
+    mailer = require('nodemailer').createTransport({ host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 587), secure: Number(process.env.SMTP_PORT) === 465, auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } });
+  } catch (e) { console.error('[mail] init failed', e.message); mailer = false; }
+  return mailer;
+}
+const emailHtml = (title, message) => `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+  <div style="background:#0055FF;color:#fff;padding:18px 24px;font-size:20px;font-weight:bold">PVRS <span style="color:#FF6600">HUB</span></div>
+  <div style="padding:24px"><h2 style="margin:0 0 12px;color:#0b1b3f">${title}</h2><p style="color:#374151;line-height:1.6">${message}</p>
+  <a href="${(process.env.FRONTEND_URL || '').split(',')[0]}/vendor/dashboard" style="display:inline-block;margin-top:16px;background:#FF6600;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Open dashboard</a></div>
+  <div style="background:#f9fafb;color:#9ca3af;font-size:12px;padding:12px 24px">Grievance: legal@yourdomain.in</div></div>`;
 function notify(userId, title, message, channel = 'email') {
   const u = userId && db.get('users', userId);
-  db.insert('notifications', { userId, to: u?.email || u?.phone, title, message, channel, sent: false }, 'ntf');
-  console.log(`[notify:${channel}] -> ${u?.phone || 'admin'}: ${title}`);
+  const to = channel === 'inbox' ? process.env.ADMIN_EMAIL : u?.email;
+  const n = db.insert('notifications', { userId, to: to || u?.phone, title, message, channel, sent: false }, 'ntf');
+  const m = getMailer();
+  if (m && to && (channel === 'email' || channel === 'inbox')) {
+    m.sendMail({ from: process.env.MAIL_FROM || process.env.SMTP_USER, to, subject: `PVRS HUB: ${title}`, html: emailHtml(title, message) })
+      .then(() => db.update('notifications', n._id, { sent: true })).catch((e) => db.update('notifications', n._id, { error: e.message }));
+  }
+  console.log(`[notify:${channel}] -> ${to || u?.phone || 'admin'}: ${title}`);
 }
 
 // ---------- Feature switches (Admin → Feature Controls) ----------
@@ -131,4 +152,4 @@ const FEATURE_DEFAULTS = {
 const features = () => ({ ...FEATURE_DEFAULTS, ...(db.settings().features || {}) });
 const requireFeature = (k, msg) => (req, res, next) => (features()[k] ? next() : res.status(403).json({ message: msg || 'This feature is currently disabled by admin' }));
 
-module.exports = { features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };
+module.exports = { getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };

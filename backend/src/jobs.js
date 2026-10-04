@@ -35,5 +35,6 @@ function runExpiryJob() {
   for (const a of db.all('ads')) if (a.status === 'approved' && a.endDate && new Date(a.endDate) < t) db.update('ads', a._id, { status: 'expired' });
   return r;
 }
-function start() { runExpiryJob(); setInterval(runExpiryJob, 6 * 3600e3); }
-module.exports = { runExpiryJob, start };
+function tracked() { const t = Date.now(); const r = runExpiryJob(); db.setSettings({ jobs: { ...(db.settings().jobs || {}), expiry: { lastRun: new Date().toISOString(), ms: Date.now() - t, result: r } } }); return r; }
+function start() { tracked(); setInterval(tracked, 6 * 3600e3); }
+module.exports = { runExpiryJob: tracked, start };
