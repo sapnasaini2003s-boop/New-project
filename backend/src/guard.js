@@ -28,6 +28,12 @@ function cleanBiz(d, { create }) {
   if (d.description !== undefined) d.description = String(d.description).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').trim().slice(0, 2000);
   for (const [k, m] of [['city', 60], ['category', 60], ['subCategory', 60], ['address', 250], ['timings', 200]]) if (d[k] !== undefined) d[k] = clean(d[k], m);
   if (d.tags) d.tags = [...new Set(d.tags.map((t) => clean(t, 30).toLowerCase()).filter(Boolean))].slice(0, 15);
+  if (d.lat !== undefined || d.lng !== undefined) {
+    const la = Number(d.lat), ln = Number(d.lng);
+    if (d.lat === '' && d.lng === '') { delete d.lat; delete d.lng; }
+    else if (!(la >= 6 && la <= 38 && ln >= 68 && ln <= 98)) throw bad('Location must be a valid latitude/longitude within India');
+    else { d.lat = +la.toFixed(6); d.lng = +ln.toFixed(6); }
+  }
   const c = d.contact;
   if (c) {
     if (typeof c !== 'object') throw bad('Invalid contact details');

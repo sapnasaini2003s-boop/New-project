@@ -50,6 +50,7 @@ router.get('/featured', (req, res) => {
 
 router.get('/businesses', (req, res) => {
   const { q, category, sub, city, sort, ids } = req.query;
+  const lat = Number(req.query.lat), lng = Number(req.query.lng); const geo = Number.isFinite(lat) && Number.isFinite(lng) && req.query.lat !== '';
   let list = db.all('businesses').filter(live);
   if (ids) { const set = new Set(String(ids).split(',')); return res.json(list.filter((b) => set.has(b._id)).map((b) => publicBiz(b))); }
   if (category) { list = list.filter((b) => b.category === category); trackSearch(category); }
@@ -68,6 +69,12 @@ router.get('/businesses', (req, res) => {
   // Premium first, then rating
   list.sort((a, b) => (isPremium(b) - isPremium(a)) || ((b.rating || 0) - (a.rating || 0)));
   if (sort === 'trending') list.sort((a, b) => (b.views || 0) - (a.views || 0));
+  if (geo) {
+    const km = (b) => { if (b.lat == null || b.lng == null) return null; const R = 6371, r = Math.PI / 180, dLa = (b.lat - lat) * r, dLn = (b.lng - lng) * r; const a = Math.sin(dLa / 2) ** 2 + Math.cos(lat * r) * Math.cos(b.lat * r) * Math.sin(dLn / 2) ** 2; return +(2 * R * Math.asin(Math.sqrt(a))).toFixed(1); };
+    const out = list.map((b) => ({ ...publicBiz(b), distanceKm: km(b) }));
+    if (sort === 'near') out.sort((x, y) => (x.distanceKm ?? 1e9) - (y.distanceKm ?? 1e9));
+    return res.json(out);
+  }
   res.json(list.map((b) => publicBiz(b)));
 });
 

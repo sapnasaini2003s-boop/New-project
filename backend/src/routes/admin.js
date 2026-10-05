@@ -119,7 +119,7 @@ function adminData(req) {
   const d = {
     name: b.name, description: b.description, category: b.category, subCategory: b.subCategory, city: b.city, address: b.address,
     timings: b.timings, hours: cleanHours(parseJSON(b.hours, undefined)), contact: parseJSON(b.contact, undefined), orderOnline: parseJSON(b.orderOnline, undefined), videos: parseJSON(b.videos, undefined),
-    plan: b.plan, planExpiry: b.planExpiry || undefined, rating: b.rating ? Number(b.rating) : undefined, reviews: b.reviews ? Number(b.reviews) : undefined,
+    lat: b.lat, lng: b.lng, plan: b.plan, planExpiry: b.planExpiry || undefined, rating: b.rating ? Number(b.rating) : undefined, reviews: b.reviews ? Number(b.reviews) : undefined,
     unclaimed: b.unclaimed === undefined ? undefined : b.unclaimed === 'true' || b.unclaimed === true,
     tags: b.tags ? String(b.tags).split(',').map((s) => s.trim()).filter(Boolean) : undefined,
   };
@@ -246,7 +246,7 @@ router.get('/system', (req, res) => {
       { key: 'otp', name: 'SMS OTP (Firebase)', ok: env.OTP_MODE === 'firebase' && !!env.FIREBASE_API_KEY, hint: 'OTP_MODE=firebase + FIREBASE_API_KEY (backend) and NEXT_PUBLIC_FIREBASE_* (frontend). Now: test OTP 123456' },
       { key: 'razorpay', name: 'Razorpay payments', ok: !!(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET), hint: 'RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET. Now: test/mock payments' },
       { key: 'whatsapp', name: 'WhatsApp lead alerts', ok: !!(env.WHATSAPP_TOKEN && env.WHATSAPP_PHONE_NUMBER_ID), hint: 'WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID (Meta Cloud API)' },
-      { key: 'email', name: 'Email alerts (SMTP)', ok: !!env.SMTP_HOST, hint: 'SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM, ADMIN_EMAIL' },
+      { key: 'email', name: 'Email alerts (SMTP)', ok: !!(env.SMTP_PASS && (env.SMTP_HOST || env.SMTP_USER)), hint: 'Gmail: SMTP_USER=pvrshub@gmail.com + SMTP_PASS=<16-letter app password> (SMTP_HOST/PORT optional), MAIL_FROM, ADMIN_EMAIL' },
       { key: 'jwt', name: 'Secure JWT secret', ok: !!env.JWT_SECRET && !/change|dev-secret/.test(env.JWT_SECRET), hint: 'Set a long random JWT_SECRET' },
     ],
   });
@@ -258,7 +258,7 @@ router.post('/system/task/:id', (req, res) => {
 });
 router.post('/system/test-email', async (req, res) => {
   const m = require('../util').getMailer(); const to = req.body.to || process.env.ADMIN_EMAIL;
-  if (!m) return res.status(400).json({ message: 'SMTP is not configured (set SMTP_HOST etc.)' });
+  if (!m) return res.status(400).json({ message: 'SMTP is not configured — set SMTP_USER=pvrshub@gmail.com and SMTP_PASS (Gmail app password) on Render' });
   if (!to) return res.status(400).json({ message: 'Enter an email address' });
   try { await m.sendMail({ from: process.env.MAIL_FROM || process.env.SMTP_USER, to, subject: 'PVRS HUB test email', text: 'SMTP is working 🎉' }); res.json({ message: `Test email sent to ${to}` }); }
   catch (e) { res.status(500).json({ message: e.message }); }
@@ -291,6 +291,32 @@ router.post('/bulk-approve', (req, res) => {
     notify(b.ownerId, 'Listing approved', `${b.name} is now live on PVRS HUB`);
   }
   db.log('bulk_approve', req.user._id, { count: n }); res.json({ message: `${n} listing(s) approved` });
+});
+
+// ---- CSV bulk import of pre-loaded (unclaimed) listings ----
+router.post('/import', (req, res) => {
+  const rows = Array.isArray(req.body.rows) ? req.body.rows : [];
+  if (!rows.length) return res.status(400).json({ message: 'No rows found in the file' });
+  if (rows.length > 500) return res.status(400).json({ message: 'Maximum 500 rows per import' });
+  const cats = db.all('categories'); const result = { created: 0, skipped: 0, errors: [] };
+  rows.forEach((r, i) => {
+    const line = i + 2; // header is line 1
+    try {
+      const cat = cats.find((c) => c.slug === String(r.category || '').trim() || c.name.toLowerCase() === String(r.category || '').trim().toLowerCase());
+      if (!cat) throw new Error(`unknown category "${r.category || ''}"`);
+      const d = cleanBiz({ name: r.name, category: cat.slug, subCategory: r.subCategory, city: r.city, address: r.address, description: r.description,
+        contact: { phone: String(r.phone || '').replace(/\D/g, '').slice(-10), whatsapp: String(r.whatsapp || '').replace(/\D/g, '').slice(-10) || undefined },
+        tags: r.tags ? String(r.tags).split(/[;,]/) : undefined, lat: r.lat || undefined, lng: r.lng || undefined }, { create: true });
+      if (!d.city) throw new Error('city is required');
+      if (!d.contact.phone) throw new Error('phone is required');
+      if (!d.contact.whatsapp) delete d.contact.whatsapp;
+      if (db.find('businesses', (b) => b.contact?.phone === d.contact.phone || (b.name?.toLowerCase() === d.name.toLowerCase() && (b.city || '').toLowerCase() === d.city.toLowerCase())).length) { result.skipped++; return; }
+      db.insert('businesses', { plan: 'free', unclaimed: true, ...d, status: 'approved', approvedOnce: true, views: 0, leads: 0, rating: 0 }, 'biz');
+      result.created++;
+    } catch (e) { result.errors.push(`Line ${line}: ${e.message}`); }
+  });
+  db.log('bulk_import', req.user._id, { created: result.created, skipped: result.skipped, errors: result.errors.length });
+  res.json({ message: `Imported ${result.created}, skipped ${result.skipped} duplicate(s), ${result.errors.length} error(s)`, ...result, errors: result.errors.slice(0, 50) });
 });
 
 // ---- CSV export ----

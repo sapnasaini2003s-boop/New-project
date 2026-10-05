@@ -86,7 +86,7 @@ const isPremium = (b) => b.plan === 'premium' && (!b.planExpiry || new Date(b.pl
 
 // Fields a vendor may edit (anything else is admin-only)
 const EDITABLE = ['name', 'description', 'category', 'subCategory', 'city', 'address', 'contact', 'orderOnline',
-  'profileImage', 'gallery', 'bannerImage', 'videos', 'timings', 'hours', 'tags', 'documents'];
+  'profileImage', 'gallery', 'bannerImage', 'videos', 'timings', 'hours', 'tags', 'documents', 'lat', 'lng'];
 
 // Public view: enforce free-tier lead hiding & media hardlock. NEVER expose pendingUpdates/documents.
 function publicBiz(b, full = false) {
@@ -118,9 +118,10 @@ function parseJSON(v, fallback) { if (v == null || v === '') return fallback; if
 let mailer = null;
 function getMailer() {
   if (mailer !== null) return mailer;
-  if (!process.env.SMTP_HOST) return (mailer = false);
+  const host = process.env.SMTP_HOST || (process.env.SMTP_USER && process.env.SMTP_PASS ? 'smtp.gmail.com' : '');
+  if (!host || !process.env.SMTP_PASS) return (mailer = false);
   try {
-    mailer = require('nodemailer').createTransport({ host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 587), secure: Number(process.env.SMTP_PORT) === 465, auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } });
+    mailer = require('nodemailer').createTransport({ host, port: Number(process.env.SMTP_PORT || 465), secure: Number(process.env.SMTP_PORT || 465) === 465, auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } });
   } catch (e) { console.error('[mail] init failed', e.message); mailer = false; }
   return mailer;
 }
@@ -131,7 +132,9 @@ const emailHtml = (title, message) => `<div style="font-family:Arial,sans-serif;
   <div style="background:#f9fafb;color:#9ca3af;font-size:12px;padding:12px 24px">Grievance: legal@yourdomain.in</div></div>`;
 function notify(userId, title, message, channel = 'email') {
   const u = userId && db.get('users', userId);
-  const to = channel === 'inbox' ? process.env.ADMIN_EMAIL : u?.email;
+  // vendors log in by mobile only, so fall back to the e-mail on their business listing
+  const bizMail = u && db.find('businesses', (b) => b.ownerId === u._id && b.contact?.email)[0]?.contact.email;
+  const to = channel === 'inbox' ? (process.env.ADMIN_EMAIL || process.env.SMTP_USER) : (u?.email || bizMail);
   const n = db.insert('notifications', { userId, to: to || u?.phone, title, message, channel, sent: false }, 'ntf');
   const m = getMailer();
   if (m && to && (channel === 'email' || channel === 'inbox')) {

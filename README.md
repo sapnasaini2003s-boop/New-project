@@ -57,3 +57,10 @@ Other additions: “Report this listing” (Sec. 79 takedown queue in Approval Q
 Sidebar groups: Dashboard · **Analytics** (charts, 7/30/90-day) · Approval Queue · Enquiries & Reviews · Businesses · Categories · Users · Ads · Content · Payments · Homepage · Legal · Feature Controls · **Team & Admins** (add admins / moderators by mobile; moderators only see queue, reviews, reports, enquiries) · **System & Migrations** (DB + integration status, versioned migrations with run button, scheduled-job status, JSON backup, maintenance tasks such as "Remove demo analytics data", SMTP test email) · Notifications & Logs.
 
 Email alerts: set `SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM, ADMIN_EMAIL` — plan/licence expiry, approvals and new-listing alerts are then emailed (HTML template).
+
+## Email (Gmail SMTP — pvrshub@gmail.com)
+1. Google Account → Security → enable **2-Step Verification**.
+2. Security → **App passwords** → create "PVRS HUB" → copy the 16-letter code.
+3. On Render (backend → Environment) add: `SMTP_USER=pvrshub@gmail.com`, `SMTP_PASS=<app password>`, `MAIL_FROM="PVRS HUB <pvrshub@gmail.com>"`, `ADMIN_EMAIL=pvrshub@gmail.com` (host/port default to smtp.gmail.com:465).
+4. Admin → System & Migrations → **Send test email**.
+Vendors log in by mobile only, so expiry/approval emails go to the e-mail on their business listing.

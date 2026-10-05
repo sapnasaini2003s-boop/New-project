@@ -22,7 +22,7 @@ function buildData(req, premium, existing = {}) {
     city: body.city, address: body.address, timings: body.timings, hours: cleanHours(parseJSON(body.hours, undefined)),
     tags: body.tags ? String(body.tags).split(',').map((s) => s.trim()).filter(Boolean) : undefined,
     contact: parseJSON(body.contact, undefined), orderOnline: parseJSON(body.orderOnline, undefined),
-    videos: parseJSON(body.videos, undefined),
+    videos: parseJSON(body.videos, undefined), lat: body.lat, lng: body.lng,
   }, EDITABLE);
   cleanBiz(d, { create: !existing._id });
   const f = req.files || {};
@@ -54,6 +54,7 @@ router.post('/listings', notMaint, files, (req, res) => {
     if (!req.files?.document) return res.status(400).json({ message: 'Upload Trade License / FSSAI / KMC Registration Certificate (JPG, PNG or PDF) is mandatory' });
     const d = buildData(req, false);
     if (!d.name || !d.category || !d.city) return res.status(400).json({ message: 'Name, category and city are required' });
+    if (!d.contact?.email) return res.status(400).json({ message: 'Business email is required — plan and licence expiry alerts are sent there' });
     const ph = d.contact?.phone;
     const dup = db.find('businesses', (b) => b.status !== 'rejected' && ((ph && b.contact?.phone === ph && b.ownerId !== req.user._id) || (b.ownerId === req.user._id && b.name?.toLowerCase() === d.name.toLowerCase() && (b.city || '').toLowerCase() === (d.city || '').toLowerCase())))[0];
     if (dup) return res.status(409).json({ message: dup.ownerId === req.user._id ? 'You already added this business.' : 'A listing with this phone number already exists. If it is your business, open it and use "Claim this listing".' });
