@@ -151,7 +151,7 @@ router.post('/grievances', limit('grv', 8, 3600e3), auth(true), (req, res) => {
 });
 
 router.get('/grievances/mine', auth(true), (req, res) =>
-  res.json(db.find('reports', (r) => r.userId === req.user._id).slice().reverse().map(({ _id, type, reason, details, status, response, createdAt, resolvedAt }) => ({ _id, type: type || 'listing', reason, details, status, response, createdAt, resolvedAt }))));
+  res.json(db.find('reports', (r) => r.userId === req.user._id).slice().reverse().map(({ _id, type, reason, details, status, response, autoResponse, createdAt, resolvedAt }) => ({ _id, type: type || 'listing', reason, details, status, response, autoResponse, createdAt, resolvedAt }))));
 
 // ---------- Search suggestions ----------
 router.get('/suggest', (req, res) => {

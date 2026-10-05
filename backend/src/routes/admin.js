@@ -375,6 +375,17 @@ router.post('/restore/:id', (req, res) => {
   res.json({ message: `Restored "${b.name}"` });
 });
 router.get('/audit', (req, res) => res.json(db.all('audit').slice(-100).reverse()));
+router.get('/auto-reply', (req, res) => res.json(require('../jobs').autoCfg()));
+router.put('/auto-reply', (req, res) => {
+  const { enabled, delayHours, message } = req.body; const m = String(message || '').trim();
+  const h = Number(delayHours);
+  if (!Number.isInteger(h) || h < 0 || h > 168) return res.status(400).json({ message: 'Delay must be a whole number of hours between 0 and 168' });
+  if (m.length < 10 || m.length > 600) return res.status(400).json({ message: 'Message must be 10–600 characters' });
+  db.setSettings({ autoReply: { enabled: !!enabled, delayHours: h, message: m } });
+  db.log('auto_reply_updated', req.user._id, { enabled: !!enabled, delayHours: h });
+  res.json({ message: 'Auto-reply saved' });
+});
+router.post('/auto-reply/run', (req, res) => { const r = require('../jobs').autoReplyJob(); res.json({ message: `Auto-reply sent to ${r.sent} pending item(s)` }); });
 router.post('/run-expiry-job', (req, res) => { const r = runExpiryJob(); res.json({ ...r, message: `Expiry check done — warned ${r.warned}, downgraded ${r.downgraded}, suspended ${r.suspended}` }); });
 
 module.exports = router;

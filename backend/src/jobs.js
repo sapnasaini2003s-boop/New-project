@@ -40,5 +40,20 @@ function runExpiryJob() {
   return r;
 }
 function tracked() { const t = Date.now(); const r = runExpiryJob(); db.setSettings({ jobs: { ...(db.settings().jobs || {}), expiry: { lastRun: new Date().toISOString(), ms: Date.now() - t, result: r } } }); return r; }
-function start() { tracked(); setInterval(tracked, 6 * 3600e3); }
-module.exports = { runExpiryJob: tracked, start };
+// ---- Auto-reply to grievances / issues after N hours (message + delay controlled by Admin) ----
+const AUTO_DEFAULT = { enabled: true, delayHours: 24, message: 'Hello {name}, thank you for contacting PVRS HUB. We have received your {type} (ref {ref}) and our team is reviewing it. You will receive the final response within 15 days as per the IT (Intermediary Guidelines) Rules 2021. — PVRS HUB Grievance Team' };
+const autoCfg = () => ({ ...AUTO_DEFAULT, ...(db.settings().autoReply || {}) });
+const fill = (m, r) => m.replace(/\{name\}/g, r.name || 'Customer').replace(/\{type\}/g, r.type === 'issue' ? 'issue' : 'grievance').replace(/\{ref\}/g, String(r._id).slice(-6).toUpperCase());
+function autoReplyJob() {
+  const c = autoCfg(); let sent = 0; if (!c.enabled) return { sent };
+  for (const r of db.find('reports', (x) => x.type && x.status === 'pending' && !x.response && !x.autoResponse)) {
+    if (Date.now() - new Date(r.createdAt) < c.delayHours * 3600e3) continue;
+    db.update('reports', r._id, { autoResponse: fill(c.message, r), autoRepliedAt: new Date().toISOString() });
+    if (r.userId) notify(r.userId, 'We received your complaint', fill(c.message, r), 'email');
+    sent++;
+  }
+  if (sent) console.log(`[auto-reply] sent ${sent}`);
+  return { sent };
+}
+function start() { tracked(); autoReplyJob(); setInterval(tracked, 6 * 3600e3); setInterval(autoReplyJob, 15 * 60e3); }
+module.exports = { runExpiryJob: tracked, autoReplyJob, autoCfg, AUTO_DEFAULT, start };
