@@ -22,7 +22,7 @@ function buildData(req, premium, existing = {}) {
     city: body.city, address: body.address, timings: body.timings, hours: cleanHours(parseJSON(body.hours, undefined)),
     tags: body.tags ? String(body.tags).split(',').map((s) => s.trim()).filter(Boolean) : undefined,
     contact: parseJSON(body.contact, undefined), orderOnline: parseJSON(body.orderOnline, undefined),
-    videos: parseJSON(body.videos, undefined), lat: body.lat, lng: body.lng,
+    videos: parseJSON(body.videos, undefined), lat: body.lat, lng: body.lng, info: parseJSON(body.info, undefined),
   }, EDITABLE);
   cleanBiz(d, { create: !existing._id });
   const f = req.files || {};
@@ -59,7 +59,9 @@ router.post('/listings', notMaint, files, (req, res) => {
     const dup = db.find('businesses', (b) => b.status !== 'rejected' && ((ph && b.contact?.phone === ph && b.ownerId !== req.user._id) || (b.ownerId === req.user._id && b.name?.toLowerCase() === d.name.toLowerCase() && (b.city || '').toLowerCase() === (d.city || '').toLowerCase())))[0];
     if (dup) return res.status(409).json({ message: dup.ownerId === req.user._id ? 'You already added this business.' : 'A listing with this phone number already exists. If it is your business, open it and use "Claim this listing".' });
     if (req.user.role === 'user') db.update('users', req.user._id, { role: 'vendor', status: 'pending' });
-    const b = db.insert('businesses', { ...d, ownerId: req.user._id, plan: 'free', status: 'pending', views: 0, leads: 0, rating: 0 }, 'biz');
+    const refUser = req.body.ref ? db.find('users', (u) => u.referralCode && u.referralCode === String(req.body.ref).trim().toUpperCase() && u._id !== req.user._id)[0] : null;
+    if (req.body.ref && !refUser) return res.status(400).json({ message: 'Invalid referral code' });
+    const b = db.insert('businesses', { ...d, referredBy: refUser?._id, ownerId: req.user._id, plan: 'free', status: 'pending', views: 0, leads: 0, rating: 0 }, 'biz');
     db.log('listing_submitted', req.user._id, { id: b._id });
     notify(null, 'New listing in review queue', b.name, 'inbox');
     res.status(201).json({ message: 'Submitted! Your listing will go live after admin verification.', data: b });

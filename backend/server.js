@@ -20,6 +20,7 @@ app.get('/', (req, res) => res.json({ message: 'PVRS HUB API running', storage: 
 app.get('/api/health', (req, res) => res.json({ ok: true, storage: db.mode() }));
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api', require('./src/routes/public'));
+app.use('/api/vendor', require('./src/routes/growth'));
 app.use('/api/vendor', require('./src/routes/vendor'));
 app.use('/api/payments', require('./src/routes/payments'));
 app.use('/api/admin', require('./src/routes/admin'));

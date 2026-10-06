@@ -39,6 +39,12 @@ function cleanBiz(d, { create }) {
     if (typeof c !== 'object') throw bad('Invalid contact details');
     for (const k of ['phone', 'whatsapp']) { if (c[k] && !isPhone(String(c[k]))) throw bad(`Invalid ${k} number — enter a 10-digit Indian mobile`); }
     if (c.email && !isEmail(c.email)) throw bad('Invalid email address');
+    const list = (k, ok, msg) => { if (c[k] === undefined) return; if (!Array.isArray(c[k])) throw bad(`Invalid ${k}`); c[k] = [...new Set(c[k].map((x) => String(x).trim()).filter(Boolean))]; if (c[k].length > 3) throw bad(`Maximum 3 extra ${k}`); if (c[k].some((x) => !ok(x))) throw bad(msg); };
+    list('phones', isPhone, 'Extra mobile numbers must be 10-digit Indian mobiles');
+    list('whatsapps', isPhone, 'Extra WhatsApp numbers must be 10-digit Indian mobiles');
+    list('emails', isEmail, 'Extra emails must be valid email addresses');
+    if (c.landline && !/^\d{2,5}[- ]?\d{6,8}$/.test(String(c.landline).trim())) throw bad('Landline must be like 0820-2522222');
+    if (c.tollFree && !/^1800[- ]?\d{3}[- ]?\d{3,4}$/.test(String(c.tollFree).trim())) throw bad('Toll-free must start with 1800');
     if (c.website && !isUrl(c.website)) throw bad('Website must start with http:// or https://');
   }
   const o = d.orderOnline;
@@ -51,6 +57,12 @@ function cleanBiz(d, { create }) {
     if (v.youtube && !hostOk(v.youtube, ['youtube.com', 'youtu.be'])) throw bad('YouTube link must be a youtube.com / youtu.be URL');
     if (v.facebook && !hostOk(v.facebook, ['facebook.com', 'fb.watch'])) throw bad('Facebook link must be a facebook.com URL');
     if (v.instagram && !hostOk(v.instagram, ['instagram.com'])) throw bad('Instagram link must be an instagram.com URL');
+  }
+  if (d.info) {
+    const i = d.info; if (typeof i !== 'object') throw bad('Invalid business info');
+    if (i.year !== undefined && i.year !== '') { const y = Number(i.year); if (!Number.isInteger(y) || y < 1900 || y > new Date().getFullYear()) throw bad('Year established must be between 1900 and this year'); i.year = y; } else delete i.year;
+    const PAY = ['Cash', 'UPI', 'Debit Card', 'Credit Card', 'Net Banking', 'Cheque']; i.payments = (i.payments || []).filter((p) => PAY.includes(p));
+    i.awards = clean(i.awards, 300); i.services = clean(i.services, 300);
   }
   if (d.documents) { if (d.documents.number) d.documents.number = clean(d.documents.number, 50); if (d.documents.type) d.documents.type = clean(d.documents.type, 60); }
   return d;

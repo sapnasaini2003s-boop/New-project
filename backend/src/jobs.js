@@ -41,7 +41,7 @@ function runExpiryJob() {
 }
 function tracked() { const t = Date.now(); const r = runExpiryJob(); db.setSettings({ jobs: { ...(db.settings().jobs || {}), expiry: { lastRun: new Date().toISOString(), ms: Date.now() - t, result: r } } }); return r; }
 // ---- Auto-reply to grievances / issues after N hours (message + delay controlled by Admin) ----
-const AUTO_DEFAULT = { enabled: true, delayHours: 24, message: 'Hello {name}, thank you for contacting PVRS HUB. We have received your {type} (ref {ref}) and our team is reviewing it. You will receive the final response within 15 days as per the IT (Intermediary Guidelines) Rules 2021. — PVRS HUB Grievance Team' };
+const AUTO_DEFAULT = { enabled: true, delayHours: 24, message: 'Dear {name}, we have received your {type} (ID: {ref}). Our Grievance Officer will review it and get back to you as per the IT (Intermediary Guidelines) Rules 2021. Thanks, PVRS HUB Team' };
 const autoCfg = () => ({ ...AUTO_DEFAULT, ...(db.settings().autoReply || {}) });
 const fill = (m, r) => m.replace(/\{name\}/g, r.name || 'Customer').replace(/\{type\}/g, r.type === 'issue' ? 'issue' : 'grievance').replace(/\{ref\}/g, String(r._id).slice(-6).toUpperCase());
 function autoReplyJob() {

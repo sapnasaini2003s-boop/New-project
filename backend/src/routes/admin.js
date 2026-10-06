@@ -14,7 +14,7 @@ router.get('/files/private/:name', auth(), role('admin', 'moderator'), (req, res
 
 router.use(auth(), role('admin', 'moderator'));
 // Moderators can only work the approval queues; everything else is super-admin only
-const MOD_OK = [/^\/queue/, /^\/listings\//, /^\/reviews/, /^\/reports/, /^\/claims/, /^\/enquiries/, /^\/overview/, /^\/me$/];
+const MOD_OK = [/^\/queue/, /^\/offers-review/, /^\/listings\//, /^\/reviews/, /^\/reports/, /^\/claims/, /^\/enquiries/, /^\/overview/, /^\/me$/];
 router.use((req, res, next) => (req.user.role === 'admin' || MOD_OK.some((r) => r.test(req.path)) ? next() : res.status(403).json({ message: 'Admin only — moderators cannot access this section' })));
 router.get('/me', (req, res) => res.json({ role: req.user.role, name: req.user.name, phone: req.user.phone }));
 
@@ -39,6 +39,7 @@ function queueCounts() {
     claims: db.find('claims', (c) => c.status === 'pending').length,
     reviews: db.find('reviews', (r) => r.status === 'pending').length,
     reports: db.find('reports', (r) => r.status === 'pending').length,
+    offers: db.find('offers', (o) => o.status === 'pending').length,
   };
 }
 
@@ -85,6 +86,7 @@ router.get('/queue', (req, res) => {
     claims: db.find('claims', (c) => c.status === 'pending'),
     reviews: db.find('reviews', (r) => r.status === 'pending'),
     reports: db.find('reports', (r) => r.status === 'pending'),
+    offers: db.find('offers', (o) => o.status === 'pending'),
   });
 });
 
@@ -119,7 +121,7 @@ function adminData(req) {
   const d = {
     name: b.name, description: b.description, category: b.category, subCategory: b.subCategory, city: b.city, address: b.address,
     timings: b.timings, hours: cleanHours(parseJSON(b.hours, undefined)), contact: parseJSON(b.contact, undefined), orderOnline: parseJSON(b.orderOnline, undefined), videos: parseJSON(b.videos, undefined),
-    lat: b.lat, lng: b.lng, plan: b.plan, planExpiry: b.planExpiry || undefined, rating: b.rating ? Number(b.rating) : undefined, reviews: b.reviews ? Number(b.reviews) : undefined,
+    lat: b.lat, lng: b.lng, info: parseJSON(b.info, undefined), plan: b.plan, planExpiry: b.planExpiry || undefined, rating: b.rating ? Number(b.rating) : undefined, reviews: b.reviews ? Number(b.reviews) : undefined,
     unclaimed: b.unclaimed === undefined ? undefined : b.unclaimed === 'true' || b.unclaimed === true,
     tags: b.tags ? String(b.tags).split(',').map((s) => s.trim()).filter(Boolean) : undefined,
   };
@@ -326,6 +328,8 @@ const CSV = {
   enquiries: ['_id', 'businessName', 'name', 'phone', 'message', 'status', 'createdAt'],
   payments: ['_id', 'purpose', 'amount', 'status', 'orderId', 'razorpayPaymentId', 'createdAt'],
   reviews: ['_id', 'businessName', 'name', 'phone', 'rating', 'text', 'status', 'createdAt'],
+  boosterRequests: ['_id', 'title', 'businessName', 'city', 'name', 'phone', 'note', 'status', 'adminNote', 'createdAt'],
+  commissions: ['_id', 'userId', 'businessName', 'base', 'pct', 'amount', 'status', 'createdAt'],
 };
 router.get('/export/:what', (req, res) => {
   const cols = CSV[req.params.what]; if (!cols) return res.status(404).send('Unknown export');
@@ -375,6 +379,49 @@ router.post('/restore/:id', (req, res) => {
   res.json({ message: `Restored "${b.name}"` });
 });
 router.get('/audit', (req, res) => res.json(db.all('audit').slice(-100).reverse()));
+// ---- Biz Boosters catalogue, sales leads (e.g. website creation), vendor offers, partner commissions ----
+const BKINDS = ['activate', 'request', 'link'];
+function boosterBody(b) {
+  const title = String(b.title || '').trim().slice(0, 80), price = Number(b.price), mrp = Number(b.mrp || 0);
+  if (title.length < 3) throw new Error('Title is required');
+  if (!(price >= 0) || price > 1000000) throw new Error('Enter a valid price');
+  if (mrp && mrp < price) throw new Error('MRP cannot be lower than the price');
+  if (!BKINDS.includes(b.kind)) throw new Error('Invalid type');
+  if (b.kind === 'activate' && !['whatsapp-leads', 'trust-seal'].includes(b.key)) throw new Error('Only the WhatsApp-leads and Trust-seal boosters can be sold with instant activation');
+  return { title, tag: String(b.tag || '').slice(0, 20), unit: ['day', 'month', 'year', 'certificate'].includes(b.unit) ? b.unit : 'day', price, mrp, kind: b.kind, color: /^#[0-9a-f]{6}$/i.test(b.color || '') ? b.color : '#e0e7ff',
+    benefits: (Array.isArray(b.benefits) ? b.benefits : String(b.benefits || '').split('\n')).map((x) => String(x).trim().slice(0, 120)).filter(Boolean).slice(0, 6), order: Number(b.order) || 99, active: b.active !== false };
+}
+router.get('/boosters', (req, res) => res.json(db.all('boosters').sort((a, b) => (a.order || 0) - (b.order || 0))));
+router.post('/boosters', (req, res) => { try { const key = String(req.body.key || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 40); if (!key) throw new Error('Key is required'); if (db.find('boosters', (x) => x.key === key).length) throw new Error('Key already exists'); res.status(201).json(db.insert('boosters', { key, ...boosterBody({ ...req.body, key }) }, 'bst')); } catch (e) { res.status(400).json({ message: e.message }); } });
+router.put('/boosters/:id', (req, res) => { try { const cur = db.get('boosters', req.params.id); if (!cur) return res.status(404).json({ message: 'Not found' }); res.json(db.update('boosters', cur._id, boosterBody({ ...req.body, key: cur.key }))); } catch (e) { res.status(400).json({ message: e.message }); } });
+router.delete('/boosters/:id', (req, res) => res.json({ ok: db.remove('boosters', req.params.id) }));
+router.get('/booster-requests', (req, res) => res.json(db.all('boosterRequests').slice().reverse()));
+router.put('/booster-requests/:id', (req, res) => {
+  const r = db.get('boosterRequests', req.params.id); if (!r) return res.status(404).json({ message: 'Not found' });
+  if (!['new', 'contacted', 'won', 'lost'].includes(req.body.status)) return res.status(400).json({ message: 'Invalid status' });
+  const adminNote = String(req.body.adminNote ?? r.adminNote ?? '').trim().slice(0, 500);
+  db.update('boosterRequests', r._id, { status: req.body.status, adminNote }); db.log('booster_request_' + req.body.status, req.user._id, { id: r._id });
+  if (req.body.status === 'won') notify(r.userId, `${r.title} — confirmed`, `Our team has confirmed your ${r.title} request for ${r.businessName}.`, 'email');
+  res.json({ message: 'Updated' });
+});
+router.put('/offers-review/:id', (req, res) => {
+  const o = db.get('offers', req.params.id); if (!o) return res.status(404).json({ message: 'Not found' });
+  const ok = req.body.action === 'approve';
+  db.update('offers', o._id, { status: ok ? 'approved' : 'rejected', active: ok });
+  notify(o.ownerId, ok ? 'Offer approved' : 'Offer rejected', `${o.title} (${o.businessName}) was ${ok ? 'approved and is now live' : 'rejected'}.`, 'email');
+  res.json({ message: ok ? 'Offer live' : 'Offer rejected' });
+});
+router.get('/partner', (req, res) => res.json({ cfg: { enabled: true, pct: 10, ...(db.settings().partner || {}) }, commissions: db.all('commissions').slice().reverse().map((c) => ({ ...c, partner: (() => { const u = db.get('users', c.userId); return u ? `${u.name || ''} +91 ${u.phone}` : '—'; })() })) }));
+router.put('/partner', (req, res) => {
+  const pct = Number(req.body.pct); if (!(pct >= 0 && pct <= 50)) return res.status(400).json({ message: 'Commission must be between 0 and 50 %' });
+  db.setSettings({ partner: { enabled: !!req.body.enabled, pct } }); res.json({ message: 'Saved' });
+});
+router.put('/commissions/:id', (req, res) => {
+  const c = db.get('commissions', req.params.id); if (!c) return res.status(404).json({ message: 'Not found' });
+  db.update('commissions', c._id, { status: req.body.status === 'paid' ? 'paid' : 'pending', paidAt: req.body.status === 'paid' ? new Date().toISOString() : null });
+  if (req.body.status === 'paid') notify(c.userId, 'Commission paid', `₹${c.amount} commission for ${c.businessName} has been paid.`, 'email');
+  res.json({ message: 'Updated' });
+});
 router.get('/auto-reply', (req, res) => res.json(require('../jobs').autoCfg()));
 router.put('/auto-reply', (req, res) => {
   const { enabled, delayHours, message } = req.body; const m = String(message || '').trim();

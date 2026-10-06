@@ -1,7 +1,7 @@
 // Public (no-login) APIs used by the website
 const router = require('express').Router();
 const db = require('../db');
-const { publicBiz, isPremium, auth, notify, features, requireFeature } = require('../util');
+const { hasBooster, publicBiz, isPremium, auth, notify, features, requireFeature } = require('../util');
 const { limit, clean, isPhone } = require('../guard');
 
 const live = (b) => b.status === 'approved';
@@ -34,7 +34,7 @@ router.get('/home', (req, res) => {
       heroVideo: ads.filter((a) => a.type === 'hero_video'),
     },
     videos: db.all('videos').filter((v) => v.active !== false).slice(0, 10),
-    offers: db.all('offers').filter((o) => o.active !== false).slice(0, 6),
+    offers: db.all('offers').filter((o) => o.active !== false && (!o.status || o.status === 'approved')).slice(0, 6),
   });
 });
 
@@ -97,7 +97,7 @@ router.post('/leads', auth(false), async (req, res) => {
   if (!b || !live(b)) return res.status(404).json({ message: 'Not found' });
   db.insert('leads', { businessId, type, userId: req.user?._id, userPhone: req.user?.phone }, 'lead');
   if (type !== 'view') db.update('businesses', b._id, { leads: (b.leads || 0) + 1 });
-  if (isPremium(b) && b.ownerId) {
+  if ((isPremium(b) || hasBooster(b, 'whatsapp-leads')) && b.ownerId) {
     const key = b._id + type; const t = Date.now();
     if (!lastAlert.get(key) || t - lastAlert.get(key) > 10 * 60e3) {
       lastAlert.set(key, t);
@@ -120,7 +120,9 @@ async function sendWhatsApp(to, text) {
   } catch (e) { console.error('WhatsApp send failed', e.message); }
 }
 
-router.get('/offers', (req, res) => res.json(db.all('offers').filter((o) => o.active !== false)));
+router.get('/offers', (req, res) => res.json(db.all('offers').filter((o) => o.active !== false && (!o.status || o.status === 'approved') && (!o.expiry || new Date(o.expiry) >= new Date(new Date().toDateString())))));
+router.get('/businesses/:id/offers', (req, res) => res.json(db.all('offers').filter((o) => o.businessId === req.params.id && o.active !== false && o.status === 'approved' && (!o.expiry || new Date(o.expiry) >= new Date(new Date().toDateString())))));
+router.get('/boosters', (req, res) => res.json(db.all('boosters').filter((b) => b.active !== false).sort((a, b) => (a.order || 0) - (b.order || 0))));
 router.get('/blogs', (req, res) => res.json(db.all('blogs').filter((b) => b.published !== false)));
 router.get('/blogs/:id', (req, res) => { const b = db.get('blogs', req.params.id); b ? res.json(b) : res.status(404).json({ message: 'Not found' }); });
 router.get('/videos', (req, res) => res.json(db.all('videos').filter((v) => v.active !== false)));
@@ -145,21 +147,10 @@ router.post('/grievances', limit('grv', 8, 3600e3), auth(true), (req, res) => {
   const { kind, details } = req.body; const text = String(details || '').trim();
   if (text.length < 5) return res.status(400).json({ message: 'Please write your query' });
   const issue = kind === 'issue';
-  const r = db.insert('reports', { type: issue ? 'issue' : 'grievance', businessId: null, businessName: issue ? 'Reported issue' : 'Grievance redressal', reason: issue ? 'Issue' : 'Grievance', details: text.slice(0, 2000), name: req.user.name, phone: req.user.phone, userId: req.user._id, status: 'pending' }, 'rep');
-  
-  // Notify Admin
+  db.insert('reports', { type: issue ? 'issue' : 'grievance', businessId: null, businessName: issue ? 'Reported issue' : 'Grievance redressal', reason: issue ? 'Issue' : 'Grievance', details: text.slice(0, 2000), name: req.user.name, phone: req.user.phone, userId: req.user._id, status: 'pending' }, 'rep');
   notify(null, issue ? 'New issue reported' : 'New grievance', `${req.user.name || req.user.phone}: ${text.slice(0, 120)}`, 'inbox');
-  
-  // Auto-reply to User
-  const msg = `Dear ${req.user.name || 'User'},
-
-We have received your ${issue ? 'issue report' : 'grievance'} (ID: ${r._id}). Our Grievance Officer will review this and get back to you within 24 hours as per the IT Rules 2021.
-
-Thanks,
-PVRS HUB Team`;
-  notify(req.user._id, `${issue ? 'Issue' : 'Grievance'} Received`, msg.replace(/\n/g, '<br>'), 'inbox', req.user.email);
-  
-  res.status(201).json({ message: 'Submitted successfully. A confirmation has been sent to you.' });
+  require('../jobs').autoReplyJob(); // sends the acknowledgement right away when Admin has set the delay to 0 hours
+  res.status(201).json({ message: 'Submitted. Track it under "My complaints" — you will get an acknowledgement and our reply there.' });
 });
 
 router.get('/grievances/mine', auth(true), (req, res) =>
@@ -216,7 +207,7 @@ router.post('/enquiries', limit('enq', 6, 10 * 60e3), auth(false), requireFeatur
   db.update('businesses', b._id, { leads: (b.leads || 0) + 1 });
   if (b.ownerId) {
     notify(b.ownerId, 'New enquiry', `${nm} enquired about ${b.name}`, 'inbox');
-    if (isPremium(b)) sendWhatsApp(b.contact?.whatsapp || b.contact?.phone, `PVRS HUB: New enquiry for "${b.name}" from ${nm}. Check your dashboard.`);
+    if (isPremium(b) || hasBooster(b, 'whatsapp-leads')) sendWhatsApp(b.contact?.whatsapp || b.contact?.phone, `PVRS HUB: New enquiry for "${b.name}" from ${nm}. Check your dashboard.`);
   }
   res.status(201).json({ message: 'Enquiry sent! The business will contact you soon.' });
 });

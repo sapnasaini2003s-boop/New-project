@@ -43,6 +43,21 @@ const MIGRATIONS = [
     if (!s.contact) db.setSettings({ contact: { email: 'support@yourdomain.in', grievance: 'legal@yourdomain.in', phone: '' } });
     return 'ok';
   } },
+  { id: '006', name: 'Biz Boosters catalogue (paid add-ons & website-creation leads)', run: () => {
+    if (db.all('boosters').length) return 'already present';
+    const B = [
+      ['whatsapp-leads', 'Receive Leads on WhatsApp', 'Quick Lead', 'day', 7, 10, 'activate', '#dcfce7', ['Get WhatsApp alerts when customers view, call or enquire', 'Improve response time & increase engagement', 'Works even on the Free plan'], 1],
+      ['mobile-banner', 'Mobile Banner on PVRS HUB', 'Most Popular', 'day', 42, 75, 'link', '#fce7f3', ['Display a visually engaging banner on the homepage', 'Be seen by customers searching for you', 'Maximise visibility where it matters most'], 2],
+      ['universal-listing', 'Universal Business Listing', 'New Launch', 'day', 56, 112, 'request', '#e0e7ff', ['We keep your Google Business listing in sync with PVRS HUB', 'Keep business information up-to-date everywhere', 'Reply to customer reviews with our help'], 3],
+      ['rating-certificate', 'PVRS Rating Certificate', 'Most Viewed', 'certificate', 6000, 12000, 'request', '#fee2e2', ['Showcase a framed certificate', 'Boost walk-in conversions', 'Increase trust and credibility'], 4],
+      ['trust-seal', 'Trust & Verified Seal', '', 'day', 25, 50, 'activate', '#fef3c7', ['Trust seal shown on your listing and in search results', 'Customers feel safer contacting you', 'Needs an admin-approved listing'], 5],
+      ['verified-badge', 'PVRS Verified Badge', '', 'day', 21, 42, 'request', '#dbeafe', ['Documents re-verified by our team', 'Verified badge on every listing card', 'Higher click-through from search'], 6],
+      ['website', 'Get Your Business Website', 'Recommended', 'day', 14, 50, 'request', '#ffedd5', ['Mobile-responsive website for your business', '100+ design templates to choose from', 'Register your own domain name'], 7],
+    ];
+    B.forEach(([key, title, tag, unit, price, mrp, kind, color, benefits, order]) => db.insert('boosters', { key, title, tag, unit, price, mrp, kind, color, benefits, order, active: true }, 'bst'));
+    return `${B.length} boosters added`;
+  } },
+  { id: '007', name: 'Partner (referral) programme defaults', run: () => { if (!db.settings().partner) db.setSettings({ partner: { enabled: true, pct: 10 } }); return 'ok'; } },
 ];
 
 // One-off maintenance tasks the admin can trigger manually

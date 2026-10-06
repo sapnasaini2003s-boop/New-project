@@ -83,10 +83,11 @@ async function sendStored(kind, name, res) {
 
 // ---------- plan helpers ----------
 const isPremium = (b) => b.plan === 'premium' && (!b.planExpiry || new Date(b.planExpiry) > new Date());
+const hasBooster = (b, key) => !!(b.boosters && b.boosters[key] && new Date(b.boosters[key].until) > new Date());
 
 // Fields a vendor may edit (anything else is admin-only)
 const EDITABLE = ['name', 'description', 'category', 'subCategory', 'city', 'address', 'contact', 'orderOnline',
-  'profileImage', 'gallery', 'bannerImage', 'videos', 'timings', 'hours', 'tags', 'documents', 'lat', 'lng'];
+  'profileImage', 'gallery', 'bannerImage', 'videos', 'timings', 'hours', 'tags', 'documents', 'lat', 'lng', 'info'];
 
 // Public view: enforce free-tier lead hiding & media hardlock. NEVER expose pendingUpdates/documents.
 function publicBiz(b, full = false) {
@@ -96,11 +97,12 @@ function publicBiz(b, full = false) {
     city: b.city, address: full ? b.address : undefined, profileImage: b.profileImage || b.image, badge: b.badge,
     mapUrl: full && (b.address || b.city) ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([b.name, b.address, b.city].filter(Boolean).join(', '))}` : undefined, rating: b.rating || 0,
     reviews: b.reviews || 0, verified: !!b.verified, plan: prem ? 'premium' : 'free', unclaimed: !!b.unclaimed,
-    timings: b.timings, hours: b.hours, tags: b.tags, featured: prem,
+    timings: b.timings, hours: b.hours, tags: b.tags, featured: prem, trustSeal: hasBooster(b, 'trust-seal') || undefined, info: b.info,
     orderOnline: b.orderOnline && (b.orderOnline.swiggy || b.orderOnline.zomato) ? b.orderOnline : undefined,
   };
   if (prem && !b.unclaimed) {
-    out.contact = { phone: b.contact?.phone, whatsapp: b.contact?.whatsapp, email: full ? b.contact?.email : undefined };
+    out.contact = { phone: b.contact?.phone, whatsapp: b.contact?.whatsapp, email: full ? b.contact?.email : undefined,
+      ...(full ? { phones: b.contact?.phones, whatsapps: b.contact?.whatsapps, emails: b.contact?.emails, landline: b.contact?.landline, tollFree: b.contact?.tollFree } : {}) };
     out.gallery = b.gallery || [];
     out.bannerImage = b.bannerImage;
     out.videos = b.videos;
@@ -167,4 +169,4 @@ function cleanHours(h) {
   }
   return out;
 }
-module.exports = { cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };
+module.exports = { hasBooster, cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };
