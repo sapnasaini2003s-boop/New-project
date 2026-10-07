@@ -69,7 +69,7 @@ function cleanBiz(d, { create }) {
     d.menu = d.menu.map((c) => {
       const name = clean(c && c.name, 40); const items = Array.isArray(c && c.items) ? c.items : [];
       if (items.length > 80) throw bad('Up to 80 items per menu category');
-      return { name, items: items.map((it) => { const price = Number(it && it.price); if (!(price >= 0 && price <= 100000)) throw bad('Menu item price must be between 0 and 1,00,000'); return { name: clean(it.name, 80), price, veg: it.veg === true || it.veg === 'true' ? true : it.veg === false || it.veg === 'false' ? false : null }; }).filter((it) => it.name) };
+      return { name, items: items.map((it) => { const price = Number(it && it.price); if (!(price >= 0 && price <= 100000)) throw bad('Menu item price must be between 0 and 1,00,000'); return { name: clean(it.name, 80), price, veg: it.veg === true || it.veg === 'true' ? true : it.veg === false || it.veg === 'false' ? false : null, desc: clean(it.desc, 300), image: isUrl(it.image) ? it.image : null }; }).filter((it) => it.name) };
     }).filter((c) => c.name && c.items.length);
   }
   if (d.documents) { if (d.documents.number) d.documents.number = clean(d.documents.number, 50); if (d.documents.type) d.documents.type = clean(d.documents.type, 60); }
