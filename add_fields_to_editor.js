@@ -1,0 +1,17 @@
+const fs = require('fs');
+let content = fs.readFileSync('frontend/src/components/MenuEditor.tsx', 'utf8');
+
+// Replace the type
+content = content.replace(
+  `export type MenuCat = { name: string; items: { name: string; price: number | string; veg: boolean | null }[] };`,
+  `export type MenuCat = { name: string; items: { name: string; price: number | string; veg: boolean | null; desc?: string; image?: string }[] };`
+);
+
+// Add the desc and image fields to the editor
+const oldEditor = `<div className="flex gap-1.5 items-center">\n                <input className="input !py-1.5 flex-1 min-w-0" maxLength={80} placeholder="Item name" value={it.name} onChange={(e) => set(i, { ...c, items: c.items.map((x, k) => (k === j ? { ...x, name: e.target.value } : x)) })} />\n                <input className="input !py-1.5 w-20" type="number" min={0} max={100000} placeholder="₹" value={it.price} onChange={(e) => set(i, { ...c, items: c.items.map((x, k) => (k === j ? { ...x, price: e.target.value } : x)) })} />\n                <select className="input !py-1.5 !w-24 text-xs" value={it.veg === null ? '' : String(it.veg)} onChange={(e) => set(i, { ...c, items: c.items.map((x, k) => (k === j ? { ...x, veg: e.target.value === '' ? null : e.target.value === 'true' } : x)) })}><option value="">-</option><option value="true">Veg</option><option value="false">Non-veg</option></select>\n                <button type="button" onClick={() => set(i, { ...c, items: c.items.filter((_, k) => k !== j) })} className="text-gray-400 px-1">✕</button>\n              </div>`;
+
+const newEditor = `<div className="border border-gray-100 rounded-lg p-2.5 space-y-2 bg-white">\n                <div className="flex gap-1.5 items-center">\n                  <input className="input !py-1.5 flex-1 min-w-0 font-medium" maxLength={80} placeholder="Item name" value={it.name} onChange={(e) => set(i, { ...c, items: c.items.map((x, k) => (k === j ? { ...x, name: e.target.value } : x)) })} />\n                  <input className="input !py-1.5 w-24" type="number" min={0} max={100000} placeholder="₹ Price" value={it.price} onChange={(e) => set(i, { ...c, items: c.items.map((x, k) => (k === j ? { ...x, price: e.target.value } : x)) })} />\n                  <select className="input !py-1.5 !w-24 text-xs" value={it.veg === null ? '' : String(it.veg)} onChange={(e) => set(i, { ...c, items: c.items.map((x, k) => (k === j ? { ...x, veg: e.target.value === '' ? null : e.target.value === 'true' } : x)) })}><option value="">-</option><option value="true">Veg</option><option value="false">Non-veg</option></select>\n                  <button type="button" onClick={() => set(i, { ...c, items: c.items.filter((_, k) => k !== j) })} className="text-red-400 hover:text-red-600 px-2 font-bold" title="Remove item">✕</button>\n                </div>\n                <div className="flex gap-2">\n                  <input className="input !py-1 flex-1 text-xs" placeholder="Short description (optional)" value={it.desc || ''} onChange={(e) => set(i, { ...c, items: c.items.map((x, k) => (k === j ? { ...x, desc: e.target.value } : x)) })} />\n                  <input className="input !py-1 w-1/3 text-xs" placeholder="Image URL (optional)" value={it.image || ''} onChange={(e) => set(i, { ...c, items: c.items.map((x, k) => (k === j ? { ...x, image: e.target.value } : x)) })} />\n                </div>\n              </div>`;
+
+content = content.replace(oldEditor, newEditor);
+
+fs.writeFileSync('frontend/src/components/MenuEditor.tsx', content, 'utf8');

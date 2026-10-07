@@ -25,6 +25,7 @@ function buildData(req, premium, existing = {}) {
     videos: parseJSON(body.videos, undefined), lat: body.lat, lng: body.lng, info: parseJSON(body.info, undefined), menu: parseJSON(body.menu, undefined),
   }, EDITABLE);
   cleanBiz(d, { create: !existing._id });
+  if (d.city !== undefined) { const list = db.settings().cities; const hit = Array.isArray(list) && list.find((c) => c.toLowerCase() === String(d.city).toLowerCase()); if (Array.isArray(list) && list.length && !hit) throw Object.assign(new Error('Choose one of the cities we currently serve'), { status: 400 }); if (hit) d.city = hit; }
   const f = req.files || {};
   if (f.profileImage) d.profileImage = fileUrl(f.profileImage[0]);
   if (f.document) {

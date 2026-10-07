@@ -375,7 +375,17 @@ for (const c of ['offers', 'blogs', 'videos']) {
 
 // ---- site settings (homepage text, stats, legal pages, social links) ----
 router.get('/settings', (req, res) => res.json(db.settings()));
-router.put('/settings', (req, res) => res.json(db.setSettings(req.body)));
+const strList = (v, max, len) => { const a = (Array.isArray(v) ? v : String(v || '').split(',')).map((x) => String(x).replace(/[\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, len)).filter(Boolean); const seen = new Set(); return a.filter((x) => { const k = x.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, max); };
+router.put('/settings', (req, res) => {
+  const b = { ...req.body }; delete b._id;
+  if (b.cities !== undefined) { b.cities = strList(b.cities, 60, 40); if (!b.cities.length) return res.status(400).json({ message: 'Keep at least one city' }); }
+  if (b.popularSearches !== undefined) b.popularSearches = strList(b.popularSearches, 20, 40);
+  for (const k of ['social', 'apps']) if (b[k] !== undefined) {
+    if (typeof b[k] !== 'object' || b[k] === null) return res.status(400).json({ message: `Invalid ${k}` });
+    for (const [n, u] of Object.entries(b[k])) { const v = String(u || '').trim(); if (v && v !== '#' && !/^https?:\/\/[^\s]+$/i.test(v)) return res.status(400).json({ message: `${n}: enter a full link starting with https://` }); b[k][n] = v; }
+  }
+  res.json(db.setSettings(b));
+});
 
 router.get('/payments', (req, res) => res.json(db.all('payments').slice().reverse()));
 router.get('/notifications', (req, res) => res.json(db.all('notifications').slice(-100).reverse()));

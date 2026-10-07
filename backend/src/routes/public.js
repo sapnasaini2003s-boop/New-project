@@ -15,7 +15,7 @@ const trackSearch = (cat) => {
 };
 
 // Public config: feature switches the frontend uses to show/hide things
-router.get('/config', (req, res) => { const s = db.settings(); res.json({ features: features(), siteName: s.siteName, cities: s.cities, announcement: s.announcement }); });
+router.get('/config', (req, res) => { const s = db.settings(); res.json({ features: features(), siteName: s.siteName, cities: s.cities, announcement: s.announcement, social: s.social, apps: s.apps }); });
 
 router.get('/categories', (req, res) => res.json(db.all('categories').filter((c) => c.active !== false).sort((a, b) => (a.order || 0) - (b.order || 0))));
 
