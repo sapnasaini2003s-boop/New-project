@@ -87,7 +87,7 @@ const hasBooster = (b, key) => !!(b.boosters && b.boosters[key] && new Date(b.bo
 
 // Fields a vendor may edit (anything else is admin-only)
 const EDITABLE = ['name', 'description', 'category', 'subCategory', 'city', 'address', 'contact', 'orderOnline',
-  'profileImage', 'gallery', 'bannerImage', 'videos', 'timings', 'hours', 'tags', 'documents', 'lat', 'lng', 'info'];
+  'profileImage', 'gallery', 'bannerImage', 'videos', 'timings', 'hours', 'tags', 'documents', 'lat', 'lng', 'info', 'menu'];
 
 // Public view: enforce free-tier lead hiding & media hardlock. NEVER expose pendingUpdates/documents.
 function publicBiz(b, full = false) {
@@ -97,7 +97,7 @@ function publicBiz(b, full = false) {
     city: b.city, address: full ? b.address : undefined, profileImage: b.profileImage || b.image, badge: b.badge,
     mapUrl: full && (b.address || b.city) ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([b.name, b.address, b.city].filter(Boolean).join(', '))}` : undefined, rating: b.rating || 0,
     reviews: b.reviews || 0, verified: !!b.verified, plan: prem ? 'premium' : 'free', unclaimed: !!b.unclaimed,
-    timings: b.timings, hours: b.hours, tags: b.tags, featured: prem, trustSeal: hasBooster(b, 'trust-seal') || undefined, info: b.info,
+    timings: b.timings, hours: b.hours, tags: b.tags, featured: prem, trustSeal: hasBooster(b, 'trust-seal') || undefined, info: b.info, hasMenu: !!(b.menu && b.menu.length) || undefined, menu: full ? b.menu : undefined,
     orderOnline: b.orderOnline && (b.orderOnline.swiggy || b.orderOnline.zomato) ? b.orderOnline : undefined,
   };
   if (prem && !b.unclaimed) {

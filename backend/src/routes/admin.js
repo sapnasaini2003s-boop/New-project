@@ -121,7 +121,7 @@ function adminData(req) {
   const d = {
     name: b.name, description: b.description, category: b.category, subCategory: b.subCategory, city: b.city, address: b.address,
     timings: b.timings, hours: cleanHours(parseJSON(b.hours, undefined)), contact: parseJSON(b.contact, undefined), orderOnline: parseJSON(b.orderOnline, undefined), videos: parseJSON(b.videos, undefined),
-    lat: b.lat, lng: b.lng, info: parseJSON(b.info, undefined), plan: b.plan, planExpiry: b.planExpiry || undefined, rating: b.rating ? Number(b.rating) : undefined, reviews: b.reviews ? Number(b.reviews) : undefined,
+    lat: b.lat, lng: b.lng, info: parseJSON(b.info, undefined), menu: parseJSON(b.menu, undefined), plan: b.plan, planExpiry: b.planExpiry || undefined, rating: b.rating ? Number(b.rating) : undefined, reviews: b.reviews ? Number(b.reviews) : undefined,
     unclaimed: b.unclaimed === undefined ? undefined : b.unclaimed === 'true' || b.unclaimed === true,
     tags: b.tags ? String(b.tags).split(',').map((s) => s.trim()).filter(Boolean) : undefined,
   };

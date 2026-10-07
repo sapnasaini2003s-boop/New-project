@@ -22,7 +22,7 @@ function buildData(req, premium, existing = {}) {
     city: body.city, address: body.address, timings: body.timings, hours: cleanHours(parseJSON(body.hours, undefined)),
     tags: body.tags ? String(body.tags).split(',').map((s) => s.trim()).filter(Boolean) : undefined,
     contact: parseJSON(body.contact, undefined), orderOnline: parseJSON(body.orderOnline, undefined),
-    videos: parseJSON(body.videos, undefined), lat: body.lat, lng: body.lng, info: parseJSON(body.info, undefined),
+    videos: parseJSON(body.videos, undefined), lat: body.lat, lng: body.lng, info: parseJSON(body.info, undefined), menu: parseJSON(body.menu, undefined),
   }, EDITABLE);
   cleanBiz(d, { create: !existing._id });
   const f = req.files || {};
