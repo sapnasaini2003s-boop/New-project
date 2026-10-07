@@ -158,15 +158,22 @@ router.put('/users/:id', (req, res) => {
 
 // ---- ads ----
 router.get('/ads', (req, res) => res.json(db.all('ads').slice().reverse()));
+const AD_TYPES = ['top_banner', 'middle_banner', 'category_banner', 'promo', 'hero_video'];
+const adSlug = (b) => { const s = String(b.categorySlug || '').trim(); if (b.type === 'category_banner' && s && !db.find('categories', (c) => c.slug === s).length) throw new Error('Unknown category'); return b.type === 'category_banner' ? s : ''; };
 router.post('/ads', upload.fields([{ name: 'image', maxCount: 1 }]), (req, res) => {
   const b = req.body;
-  const a = db.insert('ads', { type: b.type, title: b.title, subtitle: b.subtitle, link: b.link, cta: b.cta, youtubeUrl: b.youtubeUrl, bg: b.bg,
+  if (!AD_TYPES.includes(b.type)) return res.status(400).json({ message: 'Invalid ad slot' });
+  let categorySlug; try { categorySlug = adSlug(b); } catch (e) { return res.status(400).json({ message: e.message }); }
+  const a = db.insert('ads', { type: b.type, categorySlug, title: b.title, subtitle: b.subtitle, link: b.link, cta: b.cta, youtubeUrl: b.youtubeUrl, bg: b.bg,
     image: req.files?.image ? fileUrl(req.files.image[0]) : b.imageUrl, startDate: b.startDate || null, endDate: b.endDate || null,
     status: 'approved', paymentStatus: 'na', createdBy: 'admin' }, 'ad');
   res.status(201).json(a);
 });
 router.put('/ads/:id', upload.fields([{ name: 'image', maxCount: 1 }]), (req, res) => {
-  const patch = { ...req.body }; if (req.files?.image) patch.image = fileUrl(req.files.image[0]); if (patch.imageUrl) { patch.image = patch.imageUrl; delete patch.imageUrl; }
+  const patch = { ...req.body };
+  if (patch.type && !AD_TYPES.includes(patch.type)) return res.status(400).json({ message: 'Invalid ad slot' });
+  if (patch.type || patch.categorySlug !== undefined) { try { patch.categorySlug = adSlug({ type: patch.type || (db.get('ads', req.params.id) || {}).type, categorySlug: patch.categorySlug }); } catch (e) { return res.status(400).json({ message: e.message }); } }
+  if (req.files?.image) patch.image = fileUrl(req.files.image[0]); if (patch.imageUrl) { patch.image = patch.imageUrl; delete patch.imageUrl; }
   const a = db.update('ads', req.params.id, patch);
   if (a && a.ownerId && (patch.status === 'approved' || patch.status === 'rejected')) notify(a.ownerId, `Banner ad ${patch.status}`, a.title);
   res.json(a);
@@ -328,6 +335,7 @@ const CSV = {
   enquiries: ['_id', 'businessName', 'name', 'phone', 'message', 'status', 'createdAt'],
   payments: ['_id', 'purpose', 'amount', 'status', 'orderId', 'razorpayPaymentId', 'createdAt'],
   reviews: ['_id', 'businessName', 'name', 'phone', 'rating', 'text', 'status', 'createdAt'],
+  categoryLeads: ['_id', 'topic', 'name', 'phone', 'city', 'status', 'createdAt'],
   boosterRequests: ['_id', 'title', 'businessName', 'city', 'name', 'phone', 'note', 'status', 'adminNote', 'createdAt'],
   commissions: ['_id', 'userId', 'businessName', 'base', 'pct', 'amount', 'status', 'createdAt'],
 };
@@ -395,6 +403,8 @@ router.get('/boosters', (req, res) => res.json(db.all('boosters').sort((a, b) =>
 router.post('/boosters', (req, res) => { try { const key = String(req.body.key || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 40); if (!key) throw new Error('Key is required'); if (db.find('boosters', (x) => x.key === key).length) throw new Error('Key already exists'); res.status(201).json(db.insert('boosters', { key, ...boosterBody({ ...req.body, key }) }, 'bst')); } catch (e) { res.status(400).json({ message: e.message }); } });
 router.put('/boosters/:id', (req, res) => { try { const cur = db.get('boosters', req.params.id); if (!cur) return res.status(404).json({ message: 'Not found' }); res.json(db.update('boosters', cur._id, boosterBody({ ...req.body, key: cur.key }))); } catch (e) { res.status(400).json({ message: e.message }); } });
 router.delete('/boosters/:id', (req, res) => res.json({ ok: db.remove('boosters', req.params.id) }));
+router.get('/category-leads', (req, res) => res.json(db.all('categoryLeads').slice().reverse()));
+router.put('/category-leads/:id', (req, res) => { const l = db.get('categoryLeads', req.params.id); if (!l) return res.status(404).json({ message: 'Not found' }); if (!['new', 'contacted', 'won', 'lost'].includes(req.body.status)) return res.status(400).json({ message: 'Invalid status' }); db.update('categoryLeads', l._id, { status: req.body.status }); res.json({ message: 'Updated' }); });
 router.get('/booster-requests', (req, res) => res.json(db.all('boosterRequests').slice().reverse()));
 router.put('/booster-requests/:id', (req, res) => {
   const r = db.get('boosterRequests', req.params.id); if (!r) return res.status(404).json({ message: 'Not found' });

@@ -99,17 +99,18 @@ router.get('/stats', (req, res) => {
 
 // ---- Pay-per-day banner ad booking ----
 router.post('/ads', requireFeature('bannerBooking', 'Banner booking is currently disabled'), upload.fields([{ name: 'image', maxCount: 1 }]), (req, res) => {
-  const { businessId, type = 'top_banner', title, subtitle, link, startDate, days, youtubeUrl, cta } = req.body;
+  const { businessId, type = 'top_banner', title, subtitle, link, startDate, days, youtubeUrl, cta } = req.body; const categorySlug = String(req.body.categorySlug || '').trim();
   const b = db.get('businesses', businessId);
   if (!b || b.ownerId !== req.user._id) return res.status(400).json({ message: 'Select your listing' });
   if (!isPremium(b)) return res.status(402).json({ message: 'Only Premium vendors can buy banner slots' });
-  if (!['top_banner', 'middle_banner', 'promo', 'hero_video'].includes(type)) return res.status(400).json({ message: 'Invalid slot' });
+  if (!['top_banner', 'middle_banner', 'category_banner', 'promo', 'hero_video'].includes(type)) return res.status(400).json({ message: 'Invalid slot' });
+  if (type === 'category_banner' && categorySlug && !db.find('categories', (c) => c.slug === categorySlug).length) return res.status(400).json({ message: 'Choose a valid category' });
   const n = Math.max(1, Math.min(90, parseInt(days) || 1));
   const start = startDate ? new Date(startDate) : new Date();
   const end = new Date(start.getTime() + n * 864e5);
-  const perDay = Number(process.env.BANNER_PRICE_PER_DAY || 199) * (type === 'hero_video' ? 2 : 1);
+  const perDay = type === 'category_banner' ? Number(process.env.CATEGORY_BANNER_PRICE_PER_DAY || 149) : Number(process.env.BANNER_PRICE_PER_DAY || 199) * (type === 'hero_video' ? 2 : 1);
   const ad = db.insert('ads', {
-    type, title: title || b.name, subtitle, link: link || `/business/${b._id}`, cta: cta || 'View',
+    type, categorySlug: type === 'category_banner' ? categorySlug : '', title: title || b.name, subtitle, link: link || `/business/${b._id}`, cta: cta || 'View',
     image: req.files?.image ? fileUrl(req.files.image[0]) : b.profileImage, youtubeUrl,
     startDate: start.toISOString(), endDate: end.toISOString(), days: n, amount: n * perDay,
     businessId: b._id, ownerId: req.user._id, status: 'pending', paymentStatus: 'unpaid', createdBy: 'vendor',

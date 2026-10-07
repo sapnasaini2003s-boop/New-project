@@ -19,6 +19,11 @@ router.get('/config', (req, res) => { const s = db.settings(); res.json({ featur
 
 router.get('/categories', (req, res) => res.json(db.all('categories').filter((c) => c.active !== false).sort((a, b) => (a.order || 0) - (b.order || 0))));
 
+router.get('/ads/category', (req, res) => {
+  const slug = String(req.query.slug || '');
+  res.json(db.all('ads').filter(activeAd).filter((a) => a.type === 'category_banner' && (!a.categorySlug || a.categorySlug === slug)));
+});
+
 router.get('/home', (req, res) => {
   const s = db.settings();
   const ads = db.all('ads').filter(activeAd);
@@ -132,7 +137,7 @@ router.get('/pages/:slug', (req, res) => {
 });
 router.get('/pricing', (req, res) => res.json({
   premium: Number(process.env.PREMIUM_PLAN_PRICE || 2999), premiumDays: Number(process.env.PREMIUM_PLAN_DAYS || 365),
-  bannerPerDay: Number(process.env.BANNER_PRICE_PER_DAY || 199), razorpayKey: process.env.RAZORPAY_KEY_ID || null,
+  bannerPerDay: Number(process.env.BANNER_PRICE_PER_DAY || 199), categoryBannerPerDay: Number(process.env.CATEGORY_BANNER_PRICE_PER_DAY || 149), razorpayKey: process.env.RAZORPAY_KEY_ID || null,
 }));
 router.post('/contact', limit('contact', 5, 3600e3), (req, res) => {
   const { name, phone, message, type } = req.body;
@@ -197,6 +202,16 @@ router.post('/reports', limit('rep', 10, 3600e3), auth(true), requireFeature('re
 });
 
 // ---------- Enquiries (lead form — works on every plan) ----------
+// "Get the list of Top <category>" lead strip on category pages
+router.post('/category-leads', limit('catlead', 5, 10 * 60e3), (req, res) => {
+  const nm = clean(req.body.name, 60), topic = clean(req.body.topic, 80), city = clean(req.body.city, 60);
+  if (nm.length < 2 || !isPhone(req.body.phone)) return res.status(400).json({ message: 'Enter your name and a valid 10-digit mobile' });
+  if (!topic) return res.status(400).json({ message: 'Missing category' });
+  if (db.find('categoryLeads', (l) => l.phone === req.body.phone && l.topic === topic && Date.now() - new Date(l.createdAt || 0) < 60 * 60e3).length) return res.status(429).json({ message: 'We already have your request — we will contact you soon.' });
+  db.insert('categoryLeads', { name: nm, phone: req.body.phone, topic, city, status: 'new' }, 'cl');
+  res.status(201).json({ message: 'Thanks! We will send you the verified list shortly.' });
+});
+
 router.post('/enquiries', limit('enq', 6, 10 * 60e3), auth(false), requireFeature('enquiries', 'Enquiries are currently disabled'), (req, res) => {
   const { businessId, name, phone, message } = req.body; const b = db.get('businesses', businessId);
   if (!b || !live(b)) return res.status(404).json({ message: 'Listing not found' });
