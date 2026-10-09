@@ -1,5 +1,6 @@
 // Seeds categories (3-level taxonomy), homepage content, legal pages & demo data.
 const db = require('./db');
+const { template } = require('./menuTemplates');
 
 const CATS = [
   ['Restaurants & Food', '🍽️', '#FF6600', ['Pure Veg Restaurants', 'Non-Veg Dhabas', 'Cafes', 'Biryani Houses', 'Ice Cream Parlours', 'Home Kitchens & Home-Cooked Food Deliveries']],
@@ -81,7 +82,7 @@ async function seed(reset) {
     name, category, subCategory, city, address: 'Main Road, ' + city, description: `${name} — trusted ${subCategory} in ${city}.`,
     contact: { phone: '98450' + String(10000 + i), whatsapp: '98450' + String(10000 + i) }, orderOnline, profileImage: image, badge,
     plan, planExpiry: plan === 'premium' ? new Date(Date.now() + 300 * 864e5).toISOString() : null,
-    status: 'approved', approvedOnce: true, verified: true, unclaimed: i >= 4, rating: rating, reviews: reviews, views: 100 * i, leads: 0, featured: (badge === 'featured')
+    menu: template(category, subCategory), status: 'approved', approvedOnce: true, verified: true, unclaimed: i >= 4, rating: rating, reviews: reviews, views: 100 * i, leads: 0, featured: (badge === 'featured')
   }, 'biz'));
   // Demo activity for the last 30 days so admin analytics isn't empty on a fresh install
   const bizIds = db.all('businesses').map((b) => b._id);

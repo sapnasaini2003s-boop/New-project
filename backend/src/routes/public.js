@@ -125,6 +125,7 @@ router.get('/pages/:slug', (req, res) => {
   const p = (db.settings().pages || {})[req.params.slug];
   p ? res.json(p) : res.status(404).json({ message: 'Not found' });
 });
+router.get('/menu-template', (req, res) => res.json(require('../menuTemplates').template(String(req.query.category || ''), String(req.query.sub || ''))));
 router.get('/pricing', (req, res) => res.json({
   premium: Number(process.env.PREMIUM_PLAN_PRICE || 2999), premiumDays: Number(process.env.PREMIUM_PLAN_DAYS || 365),
   bannerPerDay: Number(process.env.BANNER_PRICE_PER_DAY || 199), categoryBannerPerDay: Number(process.env.CATEGORY_BANNER_PRICE_PER_DAY || 149), premiumMrp: Number(db.settings().premiumMrp) || 0, bannerMrp: Number(db.settings().bannerMrp) || 0, categoryBannerMrp: Number(db.settings().categoryBannerMrp) || 0, razorpayKey: process.env.RAZORPAY_KEY_ID || null,

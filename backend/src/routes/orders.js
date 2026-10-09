@@ -5,15 +5,16 @@ const { auth, notify, features, isPremium, hasBooster, sendWhatsApp } = require(
 const { limit, clean, isPhone } = require('../guard');
 
 const STATUS = ['new', 'confirmed', 'ready', 'delivered', 'cancelled'];
-const TYPES = ['pickup', 'delivery', 'dinein'];
+const TYPES = ['pickup', 'delivery', 'dinein', 'home', 'visit', 'booking'];
+const TYPE_LABEL = { pickup: 'Pickup', delivery: 'Home delivery', dinein: 'Dine-in', home: 'Service at my address', visit: 'I will visit your shop / office', booking: 'Booking / enquiry' };
 const pub = express.Router();
 const ven = express.Router();
 
 const waText = (o) => [
-  `*New order ${o.orderNo} — PVRS HUB*`,
+  `*New order / booking ${o.orderNo} — PVRS HUB*`,
   ...o.items.map((i) => `${i.qty} x ${i.name} — ₹${i.price * i.qty}`),
   `*Total: ₹${o.total}*`,
-  `Type: ${o.type === 'delivery' ? 'Home delivery' : o.type === 'dinein' ? 'Dine-in' : 'Pickup'}`,
+  `Type: ${TYPE_LABEL[o.type] || 'Pickup'}`,
   `Name: ${o.name}`, `Phone: ${o.phone}`,
   ...(o.address ? [`Address: ${o.address}`] : []),
   ...(o.note ? [`Note: ${o.note}`] : []),
@@ -28,32 +29,32 @@ pub.post('/businesses/:id/orders', limit('order', 6, 10 * 60e3), auth(false), (r
   const name = clean(req.body.name, 60), phone = String(req.body.phone || ''), type = TYPES.includes(req.body.type) ? req.body.type : 'pickup';
   if (name.length < 2 || !isPhone(phone)) return res.status(400).json({ message: 'Enter your name and a valid 10-digit mobile number' });
   const address = clean(req.body.address, 200), note = clean(req.body.note, 200);
-  if (type === 'delivery' && address.length < 8) return res.status(400).json({ message: 'Enter your full delivery address' });
+  if ((type === 'delivery' || type === 'home') && address.length < 8) return res.status(400).json({ message: 'Enter your full address' });
   const lines = Array.isArray(req.body.items) ? req.body.items : [];
-  if (!lines.length || lines.length > 30) return res.status(400).json({ message: 'Add 1 to 30 dishes to your cart' });
+  if (!lines.length || lines.length > 30) return res.status(400).json({ message: 'Add 1 to 30 items to your cart' });
   const items = []; const seen = new Set();
   for (const l of lines) {
     const cat = b.menu.find((c) => c.name === l?.cat); const it = cat?.items.find((x) => x.name === l?.name);
     const qty = Number(l?.qty);
-    if (!it) return res.status(400).json({ message: `"${clean(l?.name, 40)}" is no longer on the menu — refresh the page` });
+    if (!it) return res.status(400).json({ message: `"${clean(l?.name, 40)}" is no longer available — refresh the page` });
     if (!Number.isInteger(qty) || qty < 1 || qty > 20) return res.status(400).json({ message: 'Quantity must be between 1 and 20' });
     const k = cat.name + '||' + it.name; if (seen.has(k)) return res.status(400).json({ message: 'Duplicate dish in cart' }); seen.add(k);
     items.push({ cat: cat.name, name: it.name, qty, price: it.price, veg: it.veg });
   }
   const total = items.reduce((s, i) => s + i.price * i.qty, 0);
   const min = Number(b.orderCfg?.min) || 0;
-  if (total < min) return res.status(400).json({ message: `Minimum order for this restaurant is ₹${min}` });
+  if (total < min) return res.status(400).json({ message: `Minimum order for this business is ₹${min}` });
   if (db.find('orders', (o) => o.businessId === b._id && o.phone === phone && o.total === total && Date.now() - new Date(o.createdAt || 0) < 2 * 60e3).length) return res.status(429).json({ message: 'You just placed this order — please wait a couple of minutes.' });
   const orderNo = 'PV' + Date.now().toString(36).slice(-5).toUpperCase();
   const canWa = !!(b.contact?.whatsapp || b.contact?.phone) && isPremium(b);
   const o = db.insert('orders', { orderNo, businessId: b._id, businessName: b.name, ownerId: b.ownerId || null, userId: req.user?._id || null, name, phone, type, address, note, items, total, status: 'new', via: canWa ? 'whatsapp' : 'platform' }, 'ord');
   if (b.ownerId) {
-    notify(b.ownerId, `New order ${orderNo} — ₹${total}`, `${name} (${phone}) ordered ${items.length} dish(es) from ${b.name}.`, 'inbox');
+    notify(b.ownerId, `New order ${orderNo} — ₹${total}`, `${name} (${phone}) ordered ${items.length} item(s) from ${b.name}.`, 'inbox');
     if (isPremium(b) || hasBooster(b, 'whatsapp-leads')) sendWhatsApp(b.contact?.whatsapp || b.contact?.phone, waText(o));
   }
   db.update('businesses', b._id, { leads: (b.leads || 0) + 1 });
   const wa = canWa ? `https://wa.me/91${b.contact.whatsapp || b.contact.phone}?text=${encodeURIComponent(waText(o))}` : null;
-  res.status(201).json({ message: canWa ? 'Order saved. Opening WhatsApp to send it to the restaurant…' : 'Order sent! The restaurant will contact you on your mobile.', orderNo, total, waUrl: wa });
+  res.status(201).json({ message: canWa ? 'Order saved. Opening WhatsApp to send it to the business…' : 'Order sent! The business will contact you on your mobile.', orderNo, total, waUrl: wa });
 });
 
 // Vendor: my orders
