@@ -72,6 +72,7 @@ function cleanBiz(d, { create }) {
       return { name, items: items.map((it) => { const price = Number(it && it.price); if (!(price >= 0 && price <= 100000)) throw bad('Menu item price must be between 0 and 1,00,000'); return { name: clean(it.name, 80), price, veg: it.veg === true || it.veg === 'true' ? true : it.veg === false || it.veg === 'false' ? false : null, desc: clean(it.desc, 300), image: isUrl(it.image) ? it.image : null }; }).filter((it) => it.name) };
     }).filter((c) => c.name && c.items.length);
   }
+  if (d.orderCfg !== undefined) { const c = d.orderCfg || {}; const min = Number(c.min) || 0; if (min < 0 || min > 100000) throw bad('Minimum order must be between 0 and 1,00,000'); d.orderCfg = { accept: c.accept !== false && c.accept !== 'false', min }; }
   if (d.documents) { if (d.documents.number) d.documents.number = clean(d.documents.number, 50); if (d.documents.type) d.documents.type = clean(d.documents.type, 60); }
   return d;
 }

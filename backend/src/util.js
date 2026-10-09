@@ -87,7 +87,7 @@ const hasBooster = (b, key) => !!(b.boosters && b.boosters[key] && new Date(b.bo
 
 // Fields a vendor may edit (anything else is admin-only)
 const EDITABLE = ['name', 'description', 'category', 'subCategory', 'city', 'address', 'contact', 'orderOnline',
-  'profileImage', 'gallery', 'bannerImage', 'videos', 'timings', 'hours', 'tags', 'documents', 'lat', 'lng', 'info', 'menu'];
+  'profileImage', 'gallery', 'bannerImage', 'videos', 'timings', 'hours', 'tags', 'documents', 'lat', 'lng', 'info', 'menu', 'orderCfg'];
 
 // Public view: enforce free-tier lead hiding & media hardlock. NEVER expose pendingUpdates/documents.
 function publicBiz(b, full = false) {
@@ -97,7 +97,7 @@ function publicBiz(b, full = false) {
     city: b.city, address: full ? b.address : undefined, profileImage: b.profileImage || b.image, badge: b.badge,
     mapUrl: full && (b.address || b.city) ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([b.name, b.address, b.city].filter(Boolean).join(', '))}` : undefined, rating: b.rating || 0,
     reviews: b.reviews || 0, verified: !!b.verified, plan: prem ? 'premium' : 'free', unclaimed: !!b.unclaimed,
-    timings: b.timings, hours: b.hours, tags: b.tags, featured: prem, trustSeal: hasBooster(b, 'trust-seal') || undefined, info: b.info, hasMenu: !!(b.menu && b.menu.length) || undefined, menu: full ? b.menu : undefined,
+    timings: b.timings, hours: b.hours, tags: b.tags, featured: prem, trustSeal: hasBooster(b, 'trust-seal') || undefined, info: b.info, hasMenu: !!(b.menu && b.menu.length) || undefined, orderCfg: b.orderCfg, menu: full ? b.menu : undefined,
     orderOnline: b.orderOnline && (b.orderOnline.swiggy || b.orderOnline.zomato) ? b.orderOnline : undefined,
   };
   if (prem && !b.unclaimed) {
@@ -152,7 +152,7 @@ const FEATURE_DEFAULTS = {
   vendorSignup: true,     // new business owners can register
   vendorOtp: true,        // vendors must verify OTP (admin login ALWAYS needs OTP)
   reviews: true, enquiries: true, favorites: true, claims: true,
-  bannerBooking: true, premiumUpgrade: true, reports: false, complaintForm: false, orderOnline: true,
+  bannerBooking: true, premiumUpgrade: true, reports: false, complaintForm: false, orderOnline: true, cartOrders: true,
   maintenance: false,     // shows maintenance banner + blocks vendor submissions
 };
 const features = () => ({ ...FEATURE_DEFAULTS, ...(db.settings().features || {}) });
@@ -169,4 +169,23 @@ function cleanHours(h) {
   }
   return out;
 }
-module.exports = { hasBooster, cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };
+
+// ---- WhatsApp Cloud API helpers (one place, one set of env names) ----
+const waCfg = () => ({ tk: process.env.WHATSAPP_TOKEN, pid: process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.WHATSAPP_PHONE_ID });
+async function waPost(body) {
+  const { tk, pid } = waCfg(); if (!tk || !pid) return { ok: false, error: 'WhatsApp is not configured' };
+  try {
+    const r = await fetch(`https://graph.facebook.com/v21.0/${pid}/messages`, { method: 'POST', headers: { Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ messaging_product: 'whatsapp', ...body }) });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); return { ok: false, error: j.error?.message || `HTTP ${r.status}` }; }
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+async function sendWhatsApp(to, text) { if (!to) return false; const r = await waPost({ to: '91' + to, type: 'text', text: { body: text } }); if (!r.ok && r.error !== 'WhatsApp is not configured') console.error('WhatsApp send failed:', r.error); return r.ok; }
+// Login OTP. Meta only allows free text inside a 24h chat window, so production should use an approved AUTHENTICATION template (WHATSAPP_OTP_TEMPLATE).
+async function sendWhatsAppOtp(to, code) {
+  const tpl = process.env.WHATSAPP_OTP_TEMPLATE;
+  if (tpl) return waPost({ to: '91' + to, type: 'template', template: { name: tpl, language: { code: process.env.WHATSAPP_OTP_LANG || 'en' }, components: [{ type: 'body', parameters: [{ type: 'text', text: code }] }, { type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: code }] }] } });
+  return waPost({ to: '91' + to, type: 'text', text: { body: `Your PVRS HUB login OTP is ${code}. Valid for 5 minutes. Do not share it with anyone.` } });
+}
+
+module.exports = { sendWhatsApp, sendWhatsAppOtp, waCfg,  hasBooster, cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };

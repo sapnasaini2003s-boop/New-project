@@ -121,7 +121,7 @@ function adminData(req) {
   const d = {
     name: b.name, description: b.description, category: b.category, subCategory: b.subCategory, city: b.city, address: b.address,
     timings: b.timings, hours: cleanHours(parseJSON(b.hours, undefined)), contact: parseJSON(b.contact, undefined), orderOnline: parseJSON(b.orderOnline, undefined), videos: parseJSON(b.videos, undefined),
-    lat: b.lat, lng: b.lng, info: parseJSON(b.info, undefined), menu: parseJSON(b.menu, undefined), plan: b.plan, planExpiry: b.planExpiry || undefined, rating: b.rating ? Number(b.rating) : undefined, reviews: b.reviews ? Number(b.reviews) : undefined,
+    lat: b.lat, lng: b.lng, info: parseJSON(b.info, undefined), menu: parseJSON(b.menu, undefined), orderCfg: parseJSON(b.orderCfg, undefined), plan: b.plan, planExpiry: b.planExpiry || undefined, rating: b.rating ? Number(b.rating) : undefined, reviews: b.reviews ? Number(b.reviews) : undefined,
     unclaimed: b.unclaimed === undefined ? undefined : b.unclaimed === 'true' || b.unclaimed === true,
     tags: b.tags ? String(b.tags).split(',').map((s) => s.trim()).filter(Boolean) : undefined,
   };
@@ -252,9 +252,9 @@ router.get('/system', (req, res) => {
     jobs: db.settings().jobs || {},
     integrations: [
       { key: 'database', name: 'Database (Postgres)', ok: db.mode() !== 'file', hint: 'Set DATABASE_URL — otherwise data is saved to a local file and lost on Render restarts' },
-      { key: 'otp', name: 'SMS OTP (Firebase)', ok: env.OTP_MODE === 'firebase' && !!env.FIREBASE_API_KEY, hint: 'OTP_MODE=firebase + FIREBASE_API_KEY (backend) and NEXT_PUBLIC_FIREBASE_* (frontend). Now: test OTP 123456' },
+      { key: 'otp', name: 'Login OTP (Firebase SMS / WhatsApp)', ok: (env.OTP_MODE === 'firebase' && !!env.FIREBASE_API_KEY) || env.OTP_MODE === 'whatsapp', hint: 'OTP_MODE=firebase + FIREBASE_API_KEY (backend) and NEXT_PUBLIC_FIREBASE_* (frontend). Now: test OTP 123456' },
       { key: 'razorpay', name: 'Razorpay payments', ok: !!(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET), hint: 'RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET. Now: test/mock payments' },
-      { key: 'whatsapp', name: 'WhatsApp lead alerts', ok: !!(env.WHATSAPP_TOKEN && env.WHATSAPP_PHONE_NUMBER_ID), hint: 'WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID (Meta Cloud API)' },
+      { key: 'whatsapp', name: 'WhatsApp lead alerts', ok: !!(env.WHATSAPP_TOKEN && (env.WHATSAPP_PHONE_NUMBER_ID || env.WHATSAPP_PHONE_ID)), hint: 'WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID (Meta Cloud API). For WhatsApp login OTP also set OTP_MODE=whatsapp and WHATSAPP_OTP_TEMPLATE' },
       { key: 'email', name: 'Email alerts (SMTP)', ok: !!(env.SMTP_PASS && (env.SMTP_HOST || env.SMTP_USER)), hint: 'Gmail: SMTP_USER=pvrshub@gmail.com + SMTP_PASS=<16-letter app password> (SMTP_HOST/PORT optional), MAIL_FROM, ADMIN_EMAIL' },
       { key: 'jwt', name: 'Secure JWT secret', ok: !!env.JWT_SECRET && !/change|dev-secret/.test(env.JWT_SECRET), hint: 'Set a long random JWT_SECRET' },
     ],
@@ -335,6 +335,7 @@ const CSV = {
   enquiries: ['_id', 'businessName', 'name', 'phone', 'message', 'status', 'createdAt'],
   payments: ['_id', 'purpose', 'amount', 'status', 'orderId', 'razorpayPaymentId', 'createdAt'],
   reviews: ['_id', 'businessName', 'name', 'phone', 'rating', 'text', 'status', 'createdAt'],
+  orders: ['_id', 'orderNo', 'businessName', 'name', 'phone', 'type', 'total', 'status', 'via', 'createdAt'],
   categoryLeads: ['_id', 'topic', 'name', 'phone', 'city', 'status', 'createdAt'],
   boosterRequests: ['_id', 'title', 'businessName', 'city', 'name', 'phone', 'note', 'status', 'adminNote', 'createdAt'],
   commissions: ['_id', 'userId', 'businessName', 'base', 'pct', 'amount', 'status', 'createdAt'],
@@ -360,15 +361,26 @@ router.put('/categories/:id', (req, res) => {
 router.delete('/categories/:id', (req, res) => res.json({ ok: db.remove('categories', req.params.id) }));
 
 // ---- generic content: offers / blogs / videos ----
+const urlOk = (u) => { try { return ['http:', 'https:'].includes(new URL(u).protocol); } catch { return false; } };
+const txt = (v, n) => String(v ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim().slice(0, n);
+// Whitelisted + validated fields per content type (no mass-assignment of _id / status / ownerId …)
+const CONTENT = {
+  offers: (b) => { const d = { title: txt(b.title, 80), subtitle: txt(b.subtitle, 160), businessName: txt(b.businessName, 80), city: txt(b.city, 40), code: txt(b.code, 20).toUpperCase(), expiry: txt(b.expiry, 10) }; if (d.title.length < 3) throw new Error('Offer title is required (min 3 characters)'); if (d.expiry && isNaN(new Date(d.expiry))) throw new Error('Enter a valid expiry date'); return d; },
+  blogs: (b) => { const d = { title: txt(b.title, 120), excerpt: txt(b.excerpt, 300), body: String(b.body ?? '').slice(0, 20000), externalLink: txt(b.externalLink, 400) }; if (d.title.length < 3) throw new Error('Blog title is required (min 3 characters)'); if (d.externalLink && !urlOk(d.externalLink)) throw new Error('External link must start with https://'); if (!d.body.trim() && !d.externalLink) throw new Error('Write the blog body or add an external link'); return d; },
+  videos: (b) => { const d = { title: txt(b.title, 100), url: txt(b.url, 400), category: txt(b.category, 40) }; if (d.title.length < 3) throw new Error('Video title is required'); if (!urlOk(d.url)) throw new Error('Enter a valid video link (https://…)'); return d; },
+};
 for (const c of ['offers', 'blogs', 'videos']) {
   router.get(`/${c}`, (req, res) => res.json(db.all(c).slice().reverse()));
   router.post(`/${c}`, upload.fields([{ name: 'image', maxCount: 1 }]), (req, res) => {
-    const d = { ...req.body }; if (req.files?.image) d.image = fileUrl(req.files.image[0]);
-    res.status(201).json(db.insert(c, { active: true, published: true, ...d }, c.slice(0, 3)));
+    try { const d = CONTENT[c](req.body); const img = req.files?.image ? fileUrl(req.files.image[0]) : txt(req.body.image, 400); if (img) d.image = img; res.status(201).json(db.insert(c, { active: true, published: true, status: c === 'offers' ? 'approved' : undefined, ...d }, c.slice(0, 3))); } catch (e) { res.status(400).json({ message: e.message }); }
   });
   router.put(`/${c}/:id`, upload.fields([{ name: 'image', maxCount: 1 }]), (req, res) => {
-    const d = { ...req.body }; if (req.files?.image) d.image = fileUrl(req.files.image[0]);
-    res.json(db.update(c, req.params.id, d));
+    try {
+      const cur = db.get(c, req.params.id); if (!cur) return res.status(404).json({ message: 'Not found' });
+      const d = CONTENT[c]({ ...cur, ...req.body }); const img = req.files?.image ? fileUrl(req.files.image[0]) : txt(req.body.image ?? cur.image, 400); if (img) d.image = img;
+      for (const k of ['active', 'published']) if (req.body[k] !== undefined) d[k] = req.body[k] === true || req.body[k] === 'true';
+      res.json(db.update(c, req.params.id, d));
+    } catch (e) { res.status(400).json({ message: e.message }); }
   });
   router.delete(`/${c}/:id`, (req, res) => res.json({ ok: db.remove(c, req.params.id) }));
 }
@@ -379,6 +391,7 @@ const strList = (v, max, len) => { const a = (Array.isArray(v) ? v : String(v ||
 router.put('/settings', (req, res) => {
   const b = { ...req.body }; delete b._id;
   if (b.cities !== undefined) { b.cities = strList(b.cities, 60, 40); if (!b.cities.length) return res.status(400).json({ message: 'Keep at least one city' }); }
+  if (b.premiumMrp !== undefined) { const m = Number(b.premiumMrp) || 0; if (m < 0 || m > 1000000) return res.status(400).json({ message: 'MRP must be between 0 and 10,00,000' }); b.premiumMrp = m; }
   if (b.popularSearches !== undefined) b.popularSearches = strList(b.popularSearches, 20, 40);
   for (const k of ['social', 'apps']) if (b[k] !== undefined) {
     if (typeof b[k] !== 'object' || b[k] === null) return res.status(400).json({ message: `Invalid ${k}` });
@@ -413,6 +426,12 @@ router.get('/boosters', (req, res) => res.json(db.all('boosters').sort((a, b) =>
 router.post('/boosters', (req, res) => { try { const key = String(req.body.key || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 40); if (!key) throw new Error('Key is required'); if (db.find('boosters', (x) => x.key === key).length) throw new Error('Key already exists'); res.status(201).json(db.insert('boosters', { key, ...boosterBody({ ...req.body, key }) }, 'bst')); } catch (e) { res.status(400).json({ message: e.message }); } });
 router.put('/boosters/:id', (req, res) => { try { const cur = db.get('boosters', req.params.id); if (!cur) return res.status(404).json({ message: 'Not found' }); res.json(db.update('boosters', cur._id, boosterBody({ ...req.body, key: cur.key }))); } catch (e) { res.status(400).json({ message: e.message }); } });
 router.delete('/boosters/:id', (req, res) => res.json({ ok: db.remove('boosters', req.params.id) }));
+router.get('/orders', (req, res) => res.json(db.all('orders').slice().reverse()));
+router.put('/orders/:id', (req, res) => {
+  const o = db.get('orders', req.params.id); if (!o) return res.status(404).json({ message: 'Not found' });
+  if (!require('./orders').STATUS.includes(req.body.status)) return res.status(400).json({ message: 'Invalid status' });
+  db.update('orders', o._id, { status: req.body.status, adminNote: String(req.body.adminNote ?? o.adminNote ?? '').trim().slice(0, 300) }); db.log('order_' + req.body.status, req.user._id, { id: o._id }); res.json({ message: 'Updated' });
+});
 router.get('/category-leads', (req, res) => res.json(db.all('categoryLeads').slice().reverse()));
 router.put('/category-leads/:id', (req, res) => { const l = db.get('categoryLeads', req.params.id); if (!l) return res.status(404).json({ message: 'Not found' }); if (!['new', 'contacted', 'won', 'lost'].includes(req.body.status)) return res.status(400).json({ message: 'Invalid status' }); db.update('categoryLeads', l._id, { status: req.body.status }); res.json({ message: 'Updated' }); });
 router.get('/booster-requests', (req, res) => res.json(db.all('boosterRequests').slice().reverse()));

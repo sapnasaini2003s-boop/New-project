@@ -1,7 +1,7 @@
 // Public (no-login) APIs used by the website
 const router = require('express').Router();
 const db = require('../db');
-const { hasBooster, publicBiz, isPremium, auth, notify, features, requireFeature } = require('../util');
+const { sendWhatsApp, hasBooster, publicBiz, isPremium, auth, notify, features, requireFeature } = require('../util');
 const { limit, clean, isPhone } = require('../guard');
 
 const live = (b) => b.status === 'approved';
@@ -114,16 +114,6 @@ router.post('/leads', auth(false), async (req, res) => {
   res.json({ ok: true });
 });
 
-async function sendWhatsApp(to, text) {
-  const { WHATSAPP_TOKEN: tk, WHATSAPP_PHONE_NUMBER_ID: pid } = process.env;
-  if (!tk || !pid || !to) return;
-  try {
-    await fetch(`https://graph.facebook.com/v21.0/${pid}/messages`, {
-      method: 'POST', headers: { Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messaging_product: 'whatsapp', to: '91' + to, type: 'text', text: { body: text } }),
-    });
-  } catch (e) { console.error('WhatsApp send failed', e.message); }
-}
 
 router.get('/offers', (req, res) => res.json(db.all('offers').filter((o) => o.active !== false && (!o.status || o.status === 'approved') && (!o.expiry || new Date(o.expiry) >= new Date(new Date().toDateString())))));
 router.get('/businesses/:id/offers', (req, res) => res.json(db.all('offers').filter((o) => o.businessId === req.params.id && o.active !== false && o.status === 'approved' && (!o.expiry || new Date(o.expiry) >= new Date(new Date().toDateString())))));
@@ -137,7 +127,7 @@ router.get('/pages/:slug', (req, res) => {
 });
 router.get('/pricing', (req, res) => res.json({
   premium: Number(process.env.PREMIUM_PLAN_PRICE || 2999), premiumDays: Number(process.env.PREMIUM_PLAN_DAYS || 365),
-  bannerPerDay: Number(process.env.BANNER_PRICE_PER_DAY || 199), categoryBannerPerDay: Number(process.env.CATEGORY_BANNER_PRICE_PER_DAY || 149), razorpayKey: process.env.RAZORPAY_KEY_ID || null,
+  bannerPerDay: Number(process.env.BANNER_PRICE_PER_DAY || 199), categoryBannerPerDay: Number(process.env.CATEGORY_BANNER_PRICE_PER_DAY || 149), premiumMrp: Number(db.settings().premiumMrp) || 0, razorpayKey: process.env.RAZORPAY_KEY_ID || null,
 }));
 router.post('/contact', limit('contact', 5, 3600e3), (req, res) => {
   const { name, phone, message, type } = req.body;

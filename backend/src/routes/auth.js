@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const db = require('../db');
-const { sign, auth, features } = require('../util');
+const crypto = require('crypto');
+const { sign, auth, features, sendWhatsAppOtp } = require('../util');
 const { limit, clean, isEmail } = require('../guard');
 
 const otps = new Map(); // phone -> {otp, exp, tries}
@@ -32,22 +33,14 @@ router.post('/request-otp', limit('otp-ip', 20, 3600e3), limit('otp', 4, 10 * 60
   if (!p.otp) return res.json({ message: 'No OTP needed — continue', otpRequired: false });
   if ((process.env.OTP_MODE || 'dev') === 'firebase') return res.json({ message: 'Use Firebase to send OTP', mode: 'firebase' });
   
-  // WhatsApp OTP Support
-  if (process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID) {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+  // WhatsApp OTP (opt-in: OTP_MODE=whatsapp + WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID, ideally WHATSAPP_OTP_TEMPLATE)
+  if (process.env.OTP_MODE === 'whatsapp') {
+    const code = String(crypto.randomInt(100000, 1000000));
     otps.set(phone, { otp: code, exp: Date.now() + 5 * 60e3, tries: 0 });
-    
-    // Send via Meta Cloud API (requires a template named 'otp' or similar, or just send text message if approved)
-    fetch(`https://graph.facebook.com/v17.0/${process.env.WHATSAPP_PHONE_ID}/messages`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messaging_product: "whatsapp", to: "91" + phone, type: "text",
-        text: { body: `Your PVRS HUB login OTP is: ${code}. It is valid for 5 minutes. Do not share this with anyone.` }
-      })
-    }).catch(console.error);
-
-    return res.json({ message: `OTP sent to +91 ${phone} via WhatsApp`, mode: 'whatsapp' });
+    return sendWhatsAppOtp(phone, code).then((r) => {
+      if (!r.ok) { otps.delete(phone); console.error('WhatsApp OTP failed:', r.error); return res.status(502).json({ message: 'Could not send the OTP on WhatsApp right now. Please try again in a minute.' }); }
+      res.json({ message: `OTP sent to +91 ${phone} on WhatsApp`, mode: 'whatsapp' });
+    });
   }
 
   // Fallback to dev mode
