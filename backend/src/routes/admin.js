@@ -391,7 +391,8 @@ const strList = (v, max, len) => { const a = (Array.isArray(v) ? v : String(v ||
 router.put('/settings', (req, res) => {
   const b = { ...req.body }; delete b._id;
   if (b.cities !== undefined) { b.cities = strList(b.cities, 60, 40); if (!b.cities.length) return res.status(400).json({ message: 'Keep at least one city' }); }
-  if (b.premiumMrp !== undefined) { const m = Number(b.premiumMrp) || 0; if (m < 0 || m > 1000000) return res.status(400).json({ message: 'MRP must be between 0 and 10,00,000' }); b.premiumMrp = m; }
+  for (const k of ['premiumMrp', 'bannerMrp', 'categoryBannerMrp']) if (b[k] !== undefined) { const m = Number(b[k]) || 0; if (m < 0 || m > 1000000) return res.status(400).json({ message: 'MRP must be between 0 and 10,00,000' }); b[k] = m; }
+  if (false) { const m = Number(b.premiumMrp) || 0; if (m < 0 || m > 1000000) return res.status(400).json({ message: 'MRP must be between 0 and 10,00,000' }); b.premiumMrp = m; }
   if (b.popularSearches !== undefined) b.popularSearches = strList(b.popularSearches, 20, 40);
   for (const k of ['social', 'apps']) if (b[k] !== undefined) {
     if (typeof b[k] !== 'object' || b[k] === null) return res.status(400).json({ message: `Invalid ${k}` });
