@@ -108,7 +108,7 @@ router.post('/leads', auth(false), async (req, res) => {
     if (!lastAlert.get(key) || t - lastAlert.get(key) > 10 * 60e3) {
       lastAlert.set(key, t);
       sendWhatsApp(b.contact?.whatsapp || b.contact?.phone,
-        `PVRS HUB: A customer just ${type === 'view' ? 'viewed' : 'clicked ' + type + ' on'} your listing "${b.name}".`);
+        `Tap2Bizz: A customer just ${type === 'view' ? 'viewed' : 'clicked ' + type + ' on'} your listing "${b.name}".`);
       notify(b.ownerId, 'New lead', `Customer ${type} on ${b.name}`, 'whatsapp');
     }
   }
@@ -215,7 +215,7 @@ router.post('/enquiries', limit('enq', 6, 10 * 60e3), auth(false), requireFeatur
   db.update('businesses', b._id, { leads: (b.leads || 0) + 1 });
   if (b.ownerId) {
     notify(b.ownerId, 'New enquiry', `${nm} enquired about ${b.name}`, 'inbox');
-    if (isPremium(b) || hasBooster(b, 'whatsapp-leads')) sendWhatsApp(b.contact?.whatsapp || b.contact?.phone, `PVRS HUB: New enquiry for "${b.name}" from ${nm}. Check your dashboard.`);
+    if (isPremium(b) || hasBooster(b, 'whatsapp-leads')) sendWhatsApp(b.contact?.whatsapp || b.contact?.phone, `Tap2Bizz: New enquiry for "${b.name}" from ${nm}. Check your dashboard.`);
   }
   res.status(201).json({ message: 'Enquiry sent! The business will contact you soon.' });
 });

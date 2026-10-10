@@ -18,7 +18,7 @@ const CATS = [
 const slug = (s) => s.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
 const LEGAL = {
-  disclaimer: { title: 'Website Disclaimer', body: `PVRS HUB is an online intermediary directory under Section 79 of the Information Technology Act, 2000. We do not own, operate or endorse any listed business.
+  disclaimer: { title: 'Website Disclaimer', body: `Tap2Bizz is an online intermediary directory under Section 79 of the Information Technology Act, 2000. We do not own, operate or endorse any listed business.
 
 THREE-POSSIBILITY RULE (Medical & Healthcare listings): For any doctor, clinic, pharmacy, lab or nursing listing, visitors must assume that (1) the information may be accurate, (2) the information may be outdated, or (3) the information may be incorrect. Always verify registration numbers, qualifications, licence labels and medicine labels directly with the provider and the relevant medical council before relying on them. This website does not provide medical advice.
 
@@ -35,13 +35,13 @@ We do not sell personal data. Data is retained while your account is active and 
 3. Vendors must keep government licences valid. Expired licences lead to automatic suspension of the listing.
 4. Free plan: one profile image; Call/WhatsApp buttons hidden. Premium plan: contact buttons, gallery, banner and video embeds.
 5. Subscription and ad fees are non-refundable once the service is live.
-6. PVRS HUB may remove any listing without notice upon a valid takedown request or legal order.` },
+6. Tap2Bizz may remove any listing without notice upon a valid takedown request or legal order.` },
   grievance: { title: 'Grievance Officer', body: `In accordance with the Information Technology Act, 2000 and the IT (Intermediary Guidelines) Rules, 2021, complaints and takedown requests may be sent to:
 
-Grievance Officer — PVRS HUB
+Grievance Officer — Tap2Bizz
 Email: legal@yourdomain.in
 Response: acknowledgement within 24 hours, resolution within 15 days.` },
-  about: { title: 'About PVRS HUB', body: 'PVRS HUB is a verified local business directory for Udupi, Manipal, Malpe and Mangaluru — built for students, tourists and residents of coastal Karnataka.' },
+  about: { title: 'About Tap2Bizz', body: 'Tap2Bizz is a verified local business directory for Udupi, Manipal, Malpe and Mangaluru — built for students, tourists and residents of coastal Karnataka.' },
 };
 
 async function seed(reset) {
@@ -49,12 +49,12 @@ async function seed(reset) {
   await db.reset();
   CATS.forEach(([name, icon, color, subs], i) => db.insert('categories', { name, slug: slug(name), icon, color, subs, order: i, active: true }, 'cat'));
   db.setSettings({
-    siteName: 'PVRS HUB',
+    siteName: 'Tap2Bizz',
     cities: ['Udupi', 'Manipal', 'Malpe', 'Mangaluru', 'Kundapura', 'Karkala'],
     popularSearches: ['Restaurants', 'Student PGs', 'Scooter Rentals', 'Pharmacies', 'Electricians', 'Wedding Halls'],
     hero: { title: 'Find Local Businesses Near You', subtitle: 'Search. Connect. Grow. Udupi | Mangaluru | Beyond.' },
     stats: { businesses: '5,000+', customers: '100,000+', verified: 'Verified', support: 'Local' },
-    cta: { vendorTitle: 'Grow Your Local Sales — List Your Business for FREE Today!', vendorText: 'Get discovered by students, tourists & locals across coastal Karnataka.', advertiseTitle: 'Advertise with PVRS HUB', advertiseText: 'Reach thousands of local customers through banners, featured listings and video ads.' },
+    cta: { vendorTitle: 'Grow Your Local Sales — List Your Business for FREE Today!', vendorText: 'Get discovered by students, tourists & locals across coastal Karnataka.', advertiseTitle: 'Advertise with Tap2Bizz', advertiseText: 'Reach thousands of local customers through banners, featured listings and video ads.' },
     locationBanner: { title: 'Explore Udupi & Mangaluru', subtitle: 'Great Businesses. Greater People.', image: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=1200&q=70' },
     social: { facebook: '#', instagram: '#', youtube: '#', linkedin: '#' },
     apps: { android: '#', ios: '#' },
@@ -67,7 +67,7 @@ async function seed(reset) {
   db.insert('ads', { type: 'hero_video', title: 'Discover Udupi & Mangaluru', subtitle: 'A City of Opportunities', youtubeUrl: 'https://www.youtube.com/watch?v=ScMzIvxBSi4', status: 'approved', createdBy: 'admin' }, 'ad');
   [['Best Restaurants in Udupi', 'https://www.youtube.com/watch?v=ScMzIvxBSi4'], ['Top Hospitals in Mangaluru', 'https://www.youtube.com/watch?v=ScMzIvxBSi4'], ['Home Construction Ideas', 'https://www.youtube.com/watch?v=ScMzIvxBSi4'], ['Beauty Tips & Care', 'https://www.youtube.com/watch?v=ScMzIvxBSi4'], ['Local Events & Celebrations', 'https://www.youtube.com/watch?v=ScMzIvxBSi4']]
     .forEach(([title, url]) => db.insert('videos', { title, url, active: true }, 'vid'));
-  db.insert('offers', { title: 'FLAT 50% OFF', subtitle: 'On all services', businessName: 'Sagar Spa & Salon', city: 'Manipal', code: 'PVRS50', expiry: 'Valid till 31 Oct 2026', active: true }, 'off');
+  db.insert('offers', { title: 'FLAT 50% OFF', subtitle: 'On all services', businessName: 'Sagar Spa & Salon', city: 'Manipal', code: 'Tap2Bizz50', expiry: 'Valid till 31 Oct 2026', active: true }, 'off');
   db.insert('offers', { title: 'BUY 1 GET 1', subtitle: 'Premium meals', businessName: 'Hotel Supreme', city: 'Udupi', code: 'SUPREMEBOGO', expiry: 'Weekends', active: true }, 'off');
   db.insert('blogs', { title: 'Top 10 Student PGs near Manipal', excerpt: 'How to pick a safe, affordable PG near MIT/MAHE.', body: 'Check the owner\'s registration, visit in person, verify food & Wi-Fi...', published: true }, 'blo');
 

@@ -1,6 +1,6 @@
 {
   "settings": {
-    "siteName": "PVRS HUB",
+    "siteName": "Tap2Bizz",
     "cities": [
       "Udupi",
       "Manipal",
@@ -30,7 +30,7 @@
     "cta": {
       "vendorTitle": "Grow Your Local Sales — List Your Business for FREE Today!",
       "vendorText": "Get discovered by students, tourists & locals across coastal Karnataka.",
-      "advertiseTitle": "Advertise with PVRS HUB",
+      "advertiseTitle": "Advertise with Tap2Bizz",
       "advertiseText": "Reach thousands of local customers through banners, featured listings and video ads."
     },
     "locationBanner": {
@@ -51,7 +51,7 @@
     "pages": {
       "disclaimer": {
         "title": "Website Disclaimer",
-        "body": "PVRS HUB is an online intermediary directory under Section 79 of the Information Technology Act, 2000. We do not own, operate or endorse any listed business.\n\nTHREE-POSSIBILITY RULE (Medical & Healthcare listings): For any doctor, clinic, pharmacy, lab or nursing listing, visitors must assume that (1) the information may be accurate, (2) the information may be outdated, or (3) the information may be incorrect. Always verify registration numbers, qualifications, licence labels and medicine labels directly with the provider and the relevant medical council before relying on them. This website does not provide medical advice.\n\nAll ratings, prices, offers and timings are provided by vendors and may change without notice. Please double-check all details, labels and licences before making any payment or visit."
+        "body": "Tap2Bizz is an online intermediary directory under Section 79 of the Information Technology Act, 2000. We do not own, operate or endorse any listed business.\n\nTHREE-POSSIBILITY RULE (Medical & Healthcare listings): For any doctor, clinic, pharmacy, lab or nursing listing, visitors must assume that (1) the information may be accurate, (2) the information may be outdated, or (3) the information may be incorrect. Always verify registration numbers, qualifications, licence labels and medicine labels directly with the provider and the relevant medical council before relying on them. This website does not provide medical advice.\n\nAll ratings, prices, offers and timings are provided by vendors and may change without notice. Please double-check all details, labels and licences before making any payment or visit."
       },
       "privacy": {
         "title": "Privacy Policy",
@@ -59,15 +59,15 @@
       },
       "terms": {
         "title": "Business Terms of Use",
-        "body": "1. Vendors are solely and fully liable for the accuracy, legality and genuineness of all information, images, videos, prices and offers they publish.\n2. Every new listing and every future edit (phone numbers, categories, description, banners, video links) is held in a Pending Review queue and published only after manual approval by the Administrator.\n3. Vendors must keep government licences valid. Expired licences lead to automatic suspension of the listing.\n4. Free plan: one profile image; Call/WhatsApp buttons hidden. Premium plan: contact buttons, gallery, banner and video embeds.\n5. Subscription and ad fees are non-refundable once the service is live.\n6. PVRS HUB may remove any listing without notice upon a valid takedown request or legal order."
+        "body": "1. Vendors are solely and fully liable for the accuracy, legality and genuineness of all information, images, videos, prices and offers they publish.\n2. Every new listing and every future edit (phone numbers, categories, description, banners, video links) is held in a Pending Review queue and published only after manual approval by the Administrator.\n3. Vendors must keep government licences valid. Expired licences lead to automatic suspension of the listing.\n4. Free plan: one profile image; Call/WhatsApp buttons hidden. Premium plan: contact buttons, gallery, banner and video embeds.\n5. Subscription and ad fees are non-refundable once the service is live.\n6. Tap2Bizz may remove any listing without notice upon a valid takedown request or legal order."
       },
       "grievance": {
         "title": "Grievance Officer",
-        "body": "In accordance with the Information Technology Act, 2000 and the IT (Intermediary Guidelines) Rules, 2021, complaints and takedown requests may be sent to:\n\nGrievance Officer — PVRS HUB\nEmail: legal@yourdomain.in\nResponse: acknowledgement within 24 hours, resolution within 15 days."
+        "body": "In accordance with the Information Technology Act, 2000 and the IT (Intermediary Guidelines) Rules, 2021, complaints and takedown requests may be sent to:\n\nGrievance Officer — Tap2Bizz\nEmail: legal@yourdomain.in\nResponse: acknowledgement within 24 hours, resolution within 15 days."
       },
       "about": {
-        "title": "About PVRS HUB",
-        "body": "PVRS HUB is a verified local business directory for Udupi, Manipal, Malpe and Mangaluru — built for students, tourists and residents of coastal Karnataka."
+        "title": "About Tap2Bizz",
+        "body": "Tap2Bizz is a verified local business directory for Udupi, Manipal, Malpe and Mangaluru — built for students, tourists and residents of coastal Karnataka."
       }
     },
     "searchStats": {
@@ -75,7 +75,7 @@
     },
     "features": {},
     "seo": {
-      "title": "PVRS HUB – Udupi & Mangaluru Local Business Directory",
+      "title": "Tap2Bizz – Udupi & Mangaluru Local Business Directory",
       "description": "Find verified local businesses in Udupi, Manipal, Malpe and Mangaluru."
     },
     "contact": {
@@ -578,7 +578,7 @@
       "subtitle": "On all services",
       "businessName": "Sagar Spa & Salon",
       "city": "Manipal",
-      "code": "PVRS50",
+      "code": "Tap2Bizz50",
       "expiry": "Valid till 31 Oct 2026",
       "active": true
     },

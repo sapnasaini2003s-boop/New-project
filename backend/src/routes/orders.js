@@ -11,7 +11,7 @@ const pub = express.Router();
 const ven = express.Router();
 
 const waText = (o) => [
-  `*New order / booking ${o.orderNo} — PVRS HUB*`,
+  `*New order / booking ${o.orderNo} — Tap2Bizz*`,
   ...o.items.map((i) => `${i.name} — Quantity ${i.qty}`),
   `Type: ${TYPE_LABEL[o.type] || 'Pickup'}`,
   `Name: ${o.name}`, `Phone: ${o.phone}`,

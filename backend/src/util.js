@@ -128,7 +128,7 @@ function getMailer() {
   return mailer;
 }
 const emailHtml = (title, message) => `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
-  <div style="background:#0055FF;color:#fff;padding:18px 24px;font-size:20px;font-weight:bold">PVRS <span style="color:#FF6600">HUB</span></div>
+  <div style="background:#0055FF;color:#fff;padding:18px 24px;font-size:20px;font-weight:bold">Tap2Bizz <span style="color:#FF6600">HUB</span></div>
   <div style="padding:24px"><h2 style="margin:0 0 12px;color:#0b1b3f">${title}</h2><p style="color:#374151;line-height:1.6">${message}</p>
   <a href="${(process.env.FRONTEND_URL || '').split(',')[0]}/vendor/dashboard" style="display:inline-block;margin-top:16px;background:#FF6600;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Open dashboard</a></div>
   <div style="background:#f9fafb;color:#9ca3af;font-size:12px;padding:12px 24px">Grievance: legal@yourdomain.in</div></div>`;
@@ -140,7 +140,7 @@ function notify(userId, title, message, channel = 'email') {
   const n = db.insert('notifications', { userId, to: to || u?.phone, title, message, channel, sent: false }, 'ntf');
   const m = getMailer();
   if (m && to && (channel === 'email' || channel === 'inbox')) {
-    m.sendMail({ from: process.env.MAIL_FROM || process.env.SMTP_USER, to, subject: `PVRS HUB: ${title}`, html: emailHtml(title, message) })
+    m.sendMail({ from: process.env.MAIL_FROM || process.env.SMTP_USER, to, subject: `Tap2Bizz: ${title}`, html: emailHtml(title, message) })
       .then(() => db.update('notifications', n._id, { sent: true })).catch((e) => db.update('notifications', n._id, { error: e.message }));
   }
   console.log(`[notify:${channel}] -> ${to || u?.phone || 'admin'}: ${title}`);
@@ -185,7 +185,7 @@ async function sendWhatsApp(to, text) { if (!to) return false; const r = await w
 async function sendWhatsAppOtp(to, code) {
   const tpl = process.env.WHATSAPP_OTP_TEMPLATE;
   if (tpl) return waPost({ to: '91' + to, type: 'template', template: { name: tpl, language: { code: process.env.WHATSAPP_OTP_LANG || 'en' }, components: [{ type: 'body', parameters: [{ type: 'text', text: code }] }, { type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: code }] }] } });
-  return waPost({ to: '91' + to, type: 'text', text: { body: `Your PVRS HUB login OTP is ${code}. Valid for 5 minutes. Do not share it with anyone.` } });
+  return waPost({ to: '91' + to, type: 'text', text: { body: `Your Tap2Bizz login OTP is ${code}. Valid for 5 minutes. Do not share it with anyone.` } });
 }
 
 module.exports = { sendWhatsApp, sendWhatsAppOtp, waCfg,  hasBooster, cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };

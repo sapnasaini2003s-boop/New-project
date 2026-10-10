@@ -98,7 +98,7 @@ router.put('/listings/:id/approve', (req, res) => {
   db.update('businesses', b._id, patch);
   const u = db.get('users', b.ownerId); if (u && u.status === 'pending') db.update('users', u._id, { status: 'approved' });
   db.log('approved', req.user._id, { id: b._id });
-  notify(b.ownerId, 'Listing approved', `${b.name} is now live on PVRS HUB`);
+  notify(b.ownerId, 'Listing approved', `${b.name} is now live on Tap2Bizz`);
   res.json({ message: 'Approved & published' });
 });
 router.put('/listings/:id/reject', (req, res) => {
@@ -269,7 +269,7 @@ router.post('/system/test-email', async (req, res) => {
   const m = require('../util').getMailer(); const to = req.body.to || process.env.ADMIN_EMAIL;
   if (!m) return res.status(400).json({ message: 'SMTP is not configured — set SMTP_USER=suhantudupi@gmail.com and SMTP_PASS (Gmail app password) on Render' });
   if (!to) return res.status(400).json({ message: 'Enter an email address' });
-  try { await m.sendMail({ from: process.env.MAIL_FROM || process.env.SMTP_USER, to, subject: 'PVRS HUB test email', text: 'SMTP is working 🎉' }); res.json({ message: `Test email sent to ${to}` }); }
+  try { await m.sendMail({ from: process.env.MAIL_FROM || process.env.SMTP_USER, to, subject: 'Tap2Bizz test email', text: 'SMTP is working 🎉' }); res.json({ message: `Test email sent to ${to}` }); }
   catch (e) { res.status(500).json({ message: e.message }); }
 });
 router.get('/system/backup', (req, res) => {
@@ -297,7 +297,7 @@ router.post('/bulk-approve', (req, res) => {
     if (b.pendingUpdates) Object.assign(patch, b.pendingUpdates, { pendingUpdates: null });
     db.update('businesses', id, patch); n++;
     const u = db.get('users', b.ownerId); if (u && u.status === 'pending') db.update('users', u._id, { status: 'approved' });
-    notify(b.ownerId, 'Listing approved', `${b.name} is now live on PVRS HUB`);
+    notify(b.ownerId, 'Listing approved', `${b.name} is now live on Tap2Bizz`);
   }
   db.log('bulk_approve', req.user._id, { count: n }); res.json({ message: `${n} listing(s) approved` });
 });
