@@ -126,7 +126,7 @@ router.post('/ads', requireFeature('bannerBooking', 'Banner booking is currently
   const n = Math.max(1, Math.min(90, parseInt(days) || 1));
   const start = startDate ? new Date(startDate) : new Date();
   const end = new Date(start.getTime() + n * 864e5);
-  const perDay = type === 'category_banner' ? Number(process.env.CATEGORY_BANNER_PRICE_PER_DAY || 149) : Number(process.env.BANNER_PRICE_PER_DAY || 199) * (type === 'hero_video' ? 2 : 1);
+  const perDay = type === 'category_banner' ? require('../util').prices().categoryBannerPerDay : require('../util').prices().bannerPerDay * (type === 'hero_video' ? 2 : 1);
   const ad = db.insert('ads', {
     type, categorySlug: type === 'category_banner' ? categorySlug : '', title: title || b.name, subtitle, link: link || `/business/${b._id}`, cta: cta || 'View',
     image: req.files?.image ? fileUrl(req.files.image[0]) : b.profileImage, youtubeUrl,

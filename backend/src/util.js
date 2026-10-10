@@ -156,6 +156,8 @@ const FEATURE_DEFAULTS = {
   maintenance: false,     // shows maintenance banner + blocks vendor submissions
 };
 const BLOG_CATS = ['General', 'Food & Dining', 'Travel & Tourism', 'Education', 'Health & Wellness', 'Business Tips', 'Events & Festivals', 'Real Estate', 'Jobs & Careers', 'Offers & Deals'];
+// Admin-editable prices (Settings) override the env defaults
+const prices = () => { const s = db.settings(); const n = (v, d) => (Number(v) > 0 ? Number(v) : d); return { premium: n(s.premiumPrice, Number(process.env.PREMIUM_PLAN_PRICE || 2999)), premiumDays: n(s.premiumDays, Number(process.env.PREMIUM_PLAN_DAYS || 365)), bannerPerDay: n(s.bannerPerDay, Number(process.env.BANNER_PRICE_PER_DAY || 199)), categoryBannerPerDay: n(s.categoryBannerPerDay, Number(process.env.CATEGORY_BANNER_PRICE_PER_DAY || 149)) }; };
 const blogCats = () => (Array.isArray(db.settings().blogCategories) && db.settings().blogCategories.length ? db.settings().blogCategories : BLOG_CATS);
 const features = () => ({ ...FEATURE_DEFAULTS, ...(db.settings().features || {}) });
 const requireFeature = (k, msg) => (req, res, next) => (features()[k] ? next() : res.status(403).json({ message: msg || 'This feature is currently disabled by admin' }));
@@ -190,4 +192,4 @@ async function sendWhatsAppOtp(to, code) {
   return waPost({ to: '91' + to, type: 'text', text: { body: `Your Tap2Bizz login OTP is ${code}. Valid for 5 minutes. Do not share it with anyone.` } });
 }
 
-module.exports = { blogCats, sendWhatsApp, sendWhatsAppOtp, waCfg,  hasBooster, cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };
+module.exports = { prices, blogCats, sendWhatsApp, sendWhatsAppOtp, waCfg,  hasBooster, cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };

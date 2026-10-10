@@ -15,7 +15,7 @@ router.post('/order', async (req, res) => {
     const b = db.get('businesses', businessId);
     if (!b || b.ownerId !== req.user._id) return res.status(400).json({ message: 'Invalid listing' });
     if (b.status !== 'approved') return res.status(400).json({ message: 'Listing must be approved by admin before upgrading' });
-    amount = Number(process.env.PREMIUM_PLAN_PRICE || 2999);
+    amount = require('../util').prices().premium;
   } else if (purpose === 'banner_ad') {
     const a = db.get('ads', adId);
     if (!a || a.ownerId !== req.user._id) return res.status(400).json({ message: 'Invalid ad' });
@@ -61,7 +61,7 @@ router.post('/verify', (req, res) => {
   if (p.purpose === 'premium_plan') {
     const b = db.get('businesses', p.businessId);
     const base = b.planExpiry && new Date(b.planExpiry) > new Date() ? new Date(b.planExpiry) : new Date();
-    const exp = new Date(base.getTime() + Number(process.env.PREMIUM_PLAN_DAYS || 365) * 864e5);
+    const exp = new Date(base.getTime() + require('../util').prices().premiumDays * 864e5);
     if (b.referredBy && db.get('users', b.referredBy)) {
       const pct = Number((db.settings().partner || {}).pct ?? 10);
       db.insert('commissions', { userId: b.referredBy, businessId: b._id, businessName: b.name, paymentId: p._id, base: p.amount, pct, amount: Math.round(p.amount * pct) / 100, status: 'pending' }, 'com');

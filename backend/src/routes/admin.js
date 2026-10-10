@@ -394,9 +394,10 @@ router.put('/settings', (req, res) => {
   if (b.cities !== undefined) { b.cities = strList(b.cities, 60, 40); if (!b.cities.length) return res.status(400).json({ message: 'Keep at least one city' }); }
   for (const k of ['premiumMrp', 'bannerMrp', 'categoryBannerMrp']) if (b[k] !== undefined) { const m = Number(b[k]) || 0; if (m < 0 || m > 1000000) return res.status(400).json({ message: 'MRP must be between 0 and 10,00,000' }); b[k] = m; }
   if (false) { const m = Number(b.premiumMrp) || 0; if (m < 0 || m > 1000000) return res.status(400).json({ message: 'MRP must be between 0 and 10,00,000' }); b.premiumMrp = m; }
+  for (const k of ['premiumPrice', 'premiumDays', 'bannerPerDay', 'categoryBannerPerDay']) if (b[k] !== undefined && b[k] !== '') { const m = Number(b[k]); if (!(m > 0) || m > 10000000) return res.status(400).json({ message: `${k}: enter a valid amount` }); b[k] = m; } else if (b[k] === '') delete b[k];
   if (b.pricingPlans !== undefined) {
-    if (!Array.isArray(b.pricingPlans) || b.pricingPlans.length !== 3) return res.status(400).json({ message: 'Need exactly 3 plans' });
-    b.pricingPlans = b.pricingPlans.map((p) => ({ n: String(p.n || '').trim().slice(0, 40), cta: String(p.cta || '').trim().slice(0, 30), best: !!p.best, feats: strList(p.feats, 12, 80), no: strList(p.no, 8, 80) }));
+    if (!Array.isArray(b.pricingPlans) || b.pricingPlans.length < 1 || b.pricingPlans.length > 6) return res.status(400).json({ message: 'Keep 1 to 6 plans' });
+    b.pricingPlans = b.pricingPlans.map((p) => ({ key: ['free', 'premium', 'banner'].includes(p.key) ? p.key : 'custom', price: p.price === '' || p.price == null ? null : Math.max(0, Number(p.price) || 0), mrp: Math.max(0, Number(p.mrp) || 0), per: String(p.per || '').trim().slice(0, 20), link: String(p.link || '').trim().slice(0, 200), n: String(p.n || '').trim().slice(0, 40), cta: String(p.cta || '').trim().slice(0, 30), best: !!p.best, feats: strList(p.feats, 12, 80), no: strList(p.no, 8, 80) }));
   }
   if (b.popularSearches !== undefined) b.popularSearches = strList(b.popularSearches, 20, 40);
   for (const k of ['social', 'apps']) if (b[k] !== undefined) {
