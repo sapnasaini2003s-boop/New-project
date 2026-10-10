@@ -148,7 +148,8 @@ router.delete('/businesses/:id', (req, res) => {
 });
 
 // ---- users ----
-router.get('/users', (req, res) => res.json(db.all('users').slice().reverse()));
+router.get('/users', (req, res) => res.json(db.all('users').slice().reverse().map((u) => { if (!u.activity) return u; const { log, pages, ...a } = u.activity; return { ...u, activity: a }; })));
+router.get('/users/:id/activity', (req, res) => { const u = db.get('users', req.params.id); if (!u) return res.status(404).json({ message: 'Not found' }); res.json({ name: u.name, phone: u.phone, ...(u.activity || { seconds: 0, visits: 0 }), pages: u.activity?.pages || {}, log: (u.activity?.log || []).slice().reverse() }); });
 router.put('/users/:id', (req, res) => {
   const { status, role: r, blocked, name } = req.body;
   const u = db.update('users', req.params.id, JSON.parse(JSON.stringify({ status, role: r, blocked, name })));
@@ -393,6 +394,10 @@ router.put('/settings', (req, res) => {
   if (b.cities !== undefined) { b.cities = strList(b.cities, 60, 40); if (!b.cities.length) return res.status(400).json({ message: 'Keep at least one city' }); }
   for (const k of ['premiumMrp', 'bannerMrp', 'categoryBannerMrp']) if (b[k] !== undefined) { const m = Number(b[k]) || 0; if (m < 0 || m > 1000000) return res.status(400).json({ message: 'MRP must be between 0 and 10,00,000' }); b[k] = m; }
   if (false) { const m = Number(b.premiumMrp) || 0; if (m < 0 || m > 1000000) return res.status(400).json({ message: 'MRP must be between 0 and 10,00,000' }); b.premiumMrp = m; }
+  if (b.pricingPlans !== undefined) {
+    if (!Array.isArray(b.pricingPlans) || b.pricingPlans.length !== 3) return res.status(400).json({ message: 'Need exactly 3 plans' });
+    b.pricingPlans = b.pricingPlans.map((p) => ({ n: String(p.n || '').trim().slice(0, 40), cta: String(p.cta || '').trim().slice(0, 30), best: !!p.best, feats: strList(p.feats, 12, 80), no: strList(p.no, 8, 80) }));
+  }
   if (b.popularSearches !== undefined) b.popularSearches = strList(b.popularSearches, 20, 40);
   for (const k of ['social', 'apps']) if (b[k] !== undefined) {
     if (typeof b[k] !== 'object' || b[k] === null) return res.status(400).json({ message: `Invalid ${k}` });

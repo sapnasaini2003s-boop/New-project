@@ -130,7 +130,7 @@ router.get('/pages/:slug', (req, res) => {
 router.get('/menu-template', (req, res) => res.json(require('../menuTemplates').template(String(req.query.category || ''), String(req.query.sub || ''))));
 router.get('/pricing', (req, res) => res.json({
   premium: Number(process.env.PREMIUM_PLAN_PRICE || 2999), premiumDays: Number(process.env.PREMIUM_PLAN_DAYS || 365),
-  bannerPerDay: Number(process.env.BANNER_PRICE_PER_DAY || 199), categoryBannerPerDay: Number(process.env.CATEGORY_BANNER_PRICE_PER_DAY || 149), premiumMrp: Number(db.settings().premiumMrp) || 0, bannerMrp: Number(db.settings().bannerMrp) || 0, categoryBannerMrp: Number(db.settings().categoryBannerMrp) || 0, razorpayKey: process.env.RAZORPAY_KEY_ID || null,
+  bannerPerDay: Number(process.env.BANNER_PRICE_PER_DAY || 199), categoryBannerPerDay: Number(process.env.CATEGORY_BANNER_PRICE_PER_DAY || 149), plans: db.settings().pricingPlans || null, premiumMrp: Number(db.settings().premiumMrp) || 0, bannerMrp: Number(db.settings().bannerMrp) || 0, categoryBannerMrp: Number(db.settings().categoryBannerMrp) || 0, razorpayKey: process.env.RAZORPAY_KEY_ID || null,
 }));
 router.post('/contact', limit('contact', 5, 3600e3), (req, res) => {
   const { name, phone, message, type } = req.body;

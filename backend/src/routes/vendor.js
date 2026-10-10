@@ -5,6 +5,23 @@ const { cleanBiz } = require('../guard');
 const { cleanHours, features, requireFeature, auth, upload, fileUrl, isPremium, parseJSON, pick, EDITABLE, notify } = require('../util');
 
 router.use(auth());
+// ── Vendor activity: time on site + page/action log (shown in Admin → Users)
+const bump = (u, fn) => { const cur = db.get('users', u._id); if (!cur) return; const act = { seconds: 0, visits: 0, pages: {}, log: [], ...(cur.activity || {}) }; fn(act); act.log = act.log.slice(-80); db.update('users', u._id, { activity: act }); };
+router.post('/activity', (req, res) => {
+  const path = String(req.body.path || '/').slice(0, 80).replace(/[?#].*$/, ''); const secs = Math.min(Math.max(Number(req.body.secs) || 0, 0), 60);
+  bump(req.user, (a) => {
+    const now = new Date().toISOString();
+    if (req.body.start) { a.visits += 1; a.log.push({ at: now, t: 'visit', path }); }
+    else if (req.body.page) a.log.push({ at: now, t: 'page', path });
+    a.seconds += secs; if (secs) { a.pages[path] = (a.pages[path] || 0) + secs; const k = Object.keys(a.pages); if (k.length > 30) delete a.pages[k[0]]; }
+    a.lastSeen = now; a.lastPath = path;
+  });
+  res.json({ ok: true });
+});
+router.use((req, res, next) => {
+  if (req.method !== 'GET' && req.path !== '/activity') res.on('finish', () => { if (res.statusCode < 400) bump(req.user, (a) => a.log.push({ at: new Date().toISOString(), t: 'action', path: `${req.method} ${req.originalUrl.replace(/^\/api\/vendor/, '').replace(/[?#].*$/, '').slice(0, 70)}` })); });
+  next();
+});
 const notMaint = (req, res, next) => (features().maintenance ? res.status(503).json({ message: 'Site is under maintenance. Submissions are paused, please try later.' }) : next());
 const mine = (req) => db.find('businesses', (b) => b.ownerId === req.user._id);
 const own = (req, res) => {

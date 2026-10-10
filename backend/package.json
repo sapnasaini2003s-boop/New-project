@@ -1,5 +1,5 @@
 {
-  "name": "tap2bizz-backend",
+  "name": "pvrs-hub-backend",
   "version": "2.0.0",
   "main": "server.js",
   "private": true,
