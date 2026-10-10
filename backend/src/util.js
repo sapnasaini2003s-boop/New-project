@@ -131,7 +131,7 @@ const emailHtml = (title, message) => `<div style="font-family:Arial,sans-serif;
   <div style="background:#0055FF;color:#fff;padding:18px 24px;font-size:20px;font-weight:bold">PVRS <span style="color:#FF6600">HUB</span></div>
   <div style="padding:24px"><h2 style="margin:0 0 12px;color:#0b1b3f">${title}</h2><p style="color:#374151;line-height:1.6">${message}</p>
   <a href="${(process.env.FRONTEND_URL || '').split(',')[0]}/vendor/dashboard" style="display:inline-block;margin-top:16px;background:#FF6600;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Open dashboard</a></div>
-  <div style="background:#f9fafb;color:#9ca3af;font-size:12px;padding:12px 24px">Grievance: suhantudupi@gmail.com</div></div>`;
+  <div style="background:#f9fafb;color:#9ca3af;font-size:12px;padding:12px 24px">Grievance: legal@yourdomain.in</div></div>`;
 function notify(userId, title, message, channel = 'email') {
   const u = userId && db.get('users', userId);
   // vendors log in by mobile only, so fall back to the e-mail on their business listing
@@ -152,7 +152,7 @@ const FEATURE_DEFAULTS = {
   vendorSignup: true,     // new business owners can register
   vendorOtp: true,        // vendors must verify OTP (admin login ALWAYS needs OTP)
   reviews: true, enquiries: true, favorites: true, claims: true,
-  bannerBooking: true, premiumUpgrade: true, reports: false, complaintForm: false, orderOnline: true, cartOrders: true,
+  bannerBooking: true, premiumUpgrade: true, reports: false, complaintForm: false, orderOnline: true, cartOrders: true, grievanceForm: true,
   maintenance: false,     // shows maintenance banner + blocks vendor submissions
 };
 const features = () => ({ ...FEATURE_DEFAULTS, ...(db.settings().features || {}) });

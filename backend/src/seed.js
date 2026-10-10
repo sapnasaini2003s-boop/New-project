@@ -39,7 +39,7 @@ We do not sell personal data. Data is retained while your account is active and 
   grievance: { title: 'Grievance Officer', body: `In accordance with the Information Technology Act, 2000 and the IT (Intermediary Guidelines) Rules, 2021, complaints and takedown requests may be sent to:
 
 Grievance Officer — PVRS HUB
-Email: suhantudupi@gmail.com
+Email: legal@yourdomain.in
 Response: acknowledgement within 24 hours, resolution within 15 days.` },
   about: { title: 'About PVRS HUB', body: 'PVRS HUB is a verified local business directory for Udupi, Manipal, Malpe and Mangaluru — built for students, tourists and residents of coastal Karnataka.' },
 };
@@ -60,9 +60,9 @@ async function seed(reset) {
     apps: { android: '#', ios: '#' },
     pages: LEGAL, searchStats: {},
   });
-  db.insert('ads', { type: 'top_banner', title: 'SRI GANESH MOTORS', subtitle: 'Ride the new style — Wide Range | Best Offers | Easy Finance', cta: 'BOOK NOW', link: '/search?q=scooter', bg: 'linear-gradient(90deg,#7f1d1d,#dc2626)', status: 'approved', createdBy: 'admin' }, 'ad');
-  db.insert('ads', { type: 'top_banner', title: 'MANIPAL STAY PG', subtitle: 'Fully furnished PGs near MIT/MAHE — Wi-Fi, food, laundry', cta: 'ENQUIRE', link: '/category/hotels-and-stay', bg: 'linear-gradient(90deg,#0033aa,#0055FF)', status: 'approved', createdBy: 'admin' }, 'ad');
-  db.insert('ads', { type: 'middle_banner', title: 'COASTAL TMT', subtitle: 'Stronger Foundations. Brighter Tomorrow.', cta: 'KNOW MORE', link: '/advertise', bg: 'linear-gradient(90deg,#eff6ff,#dbeafe)', status: 'approved', createdBy: 'admin' }, 'ad');
+  db.insert('ads', { type: 'top_banner', title: 'SRI GANESH MOTORS', subtitle: 'Ride the new style — Wide Range | Best Offers | Easy Finance', cta: 'BOOK NOW', link: '/search?q=scooter', thumb: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=400&q=70', bg: 'linear-gradient(90deg,#7f1d1d,#dc2626)', status: 'approved', createdBy: 'admin' }, 'ad');
+  db.insert('ads', { type: 'top_banner', title: 'MANIPAL STAY PG', subtitle: 'Fully furnished PGs near MIT/MAHE — Wi-Fi, food, laundry', cta: 'ENQUIRE', link: '/category/hotels-and-stay', thumb: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&q=70', bg: 'linear-gradient(90deg,#0033aa,#0055FF)', status: 'approved', createdBy: 'admin' }, 'ad');
+  db.insert('ads', { type: 'middle_banner', title: 'COASTAL TMT', subtitle: 'Stronger Foundations. Brighter Tomorrow.', cta: 'KNOW MORE', link: '/advertise', thumb: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=400&q=70', bg: 'linear-gradient(90deg,#eff6ff,#dbeafe)', status: 'approved', createdBy: 'admin' }, 'ad');
   db.insert('ads', { type: 'promo', title: 'Make Your Home More Beautiful', subtitle: 'Furniture | Interiors | Home Decor', cta: 'EXPLORE NOW', link: '/search?q=interior', image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=70', status: 'approved', createdBy: 'admin' }, 'ad');
   db.insert('ads', { type: 'hero_video', title: 'Discover Udupi & Mangaluru', subtitle: 'A City of Opportunities', youtubeUrl: 'https://www.youtube.com/watch?v=ScMzIvxBSi4', status: 'approved', createdBy: 'admin' }, 'ad');
   [['Best Restaurants in Udupi', 'https://www.youtube.com/watch?v=ScMzIvxBSi4'], ['Top Hospitals in Mangaluru', 'https://www.youtube.com/watch?v=ScMzIvxBSi4'], ['Home Construction Ideas', 'https://www.youtube.com/watch?v=ScMzIvxBSi4'], ['Beauty Tips & Care', 'https://www.youtube.com/watch?v=ScMzIvxBSi4'], ['Local Events & Celebrations', 'https://www.youtube.com/watch?v=ScMzIvxBSi4']]

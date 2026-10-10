@@ -19,9 +19,10 @@ router.get('/config', (req, res) => { const s = db.settings(); res.json({ featur
 
 router.get('/categories', (req, res) => res.json(db.all('categories').filter((c) => c.active !== false).sort((a, b) => (a.order || 0) - (b.order || 0))));
 
+const withThumb = (a) => { const b = a.businessId ? db.get('businesses', a.businessId) : null; return { ...a, thumb: a.thumb || (b && (b.profileImage || b.image)) || null }; };
 router.get('/ads/category', (req, res) => {
   const slug = String(req.query.slug || '');
-  res.json(db.all('ads').filter(activeAd).filter((a) => a.type === 'category_banner' && (!a.categorySlug || a.categorySlug === slug)));
+  res.json(db.all('ads').filter(activeAd).filter((a) => a.type === 'category_banner' && (!a.categorySlug || a.categorySlug === slug)).map(withThumb));
 });
 
 router.get('/home', (req, res) => {
@@ -33,8 +34,8 @@ router.get('/home', (req, res) => {
     settings: { hero: s.hero, cta: s.cta, locationBanner: s.locationBanner, social: s.social, apps: s.apps, cities: s.cities, popularSearches: s.popularSearches, siteName: s.siteName },
     stats: { ...stats, businesses: stats.businesses || `${approved.length}+` },
     ads: {
-      top: ads.filter((a) => a.type === 'top_banner'),
-      middle: ads.filter((a) => a.type === 'middle_banner'),
+      top: ads.filter((a) => a.type === 'top_banner').map(withThumb),
+      middle: ads.filter((a) => a.type === 'middle_banner').map(withThumb),
       promo: ads.filter((a) => a.type === 'promo'),
       heroVideo: ads.filter((a) => a.type === 'hero_video'),
     },
@@ -140,6 +141,7 @@ router.post('/contact', limit('contact', 5, 3600e3), (req, res) => {
 
 // ---------- Grievance (login required) ----------
 router.post('/grievances', limit('grv', 8, 3600e3), auth(true), (req, res) => {
+  if (features().grievanceForm === false) return res.status(403).json({ message: 'The grievance / issue form is currently turned off. Please email the Grievance Officer.' });
   const { kind, details } = req.body; const text = String(details || '').trim();
   if (text.length < 5) return res.status(400).json({ message: 'Please write your query' });
   const issue = kind === 'issue';

@@ -12,8 +12,7 @@ const ven = express.Router();
 
 const waText = (o) => [
   `*New order / booking ${o.orderNo} — PVRS HUB*`,
-  ...o.items.map((i) => `${i.qty} x ${i.name} — ₹${i.price * i.qty}`),
-  `*Total: ₹${o.total}*`,
+  ...o.items.map((i) => `${i.name} — Quantity ${i.qty}`),
   `Type: ${TYPE_LABEL[o.type] || 'Pickup'}`,
   `Name: ${o.name}`, `Phone: ${o.phone}`,
   ...(o.address ? [`Address: ${o.address}`] : []),
