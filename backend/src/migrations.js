@@ -85,6 +85,31 @@ const MIGRATIONS = [
       return `Updated ${c1} settings and ${c2} pages.`;
     } 
   },
+
+  { 
+    id: '009', 
+    name: 'Fix dummy emails in settings.pages', 
+    run: () => {
+      let c = 0;
+      const s = db.settings();
+      if (s.pages) {
+        for (const slug of Object.keys(s.pages)) {
+          let p = s.pages[slug];
+          if (p && p.content) {
+            let changed = false;
+            if (p.content.includes('yourdomain.in')) {
+              p.content = p.content.replace(/support@yourdomain\.in/g, 'suhantudupi@gmail.com');
+              p.content = p.content.replace(/legal@yourdomain\.in/g, 'suhantudupi@gmail.com');
+              changed = true;
+            }
+            if (changed) c++;
+          }
+        }
+        if (c > 0) db.setSettings(s);
+      }
+      return `Updated ${c} pages in settings.`;
+    } 
+  },
 ];
 
 // One-off maintenance tasks the admin can trigger manually
