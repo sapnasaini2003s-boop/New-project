@@ -42,7 +42,9 @@ router.post('/offers', limit('vofr', 10, 3600e3), (req, res) => {
   const exp = req.body.expiry; if (!exp || isNaN(new Date(exp)) || new Date(exp) < new Date(new Date().toDateString())) return bad(res, 'Choose a valid expiry date (today or later)');
   if (new Date(exp) - Date.now() > 366 * 864e5) return bad(res, 'Expiry cannot be more than 1 year away');
   if (db.find('offers', (o) => o.ownerId === req.user._id && o.status === 'pending').length >= 5) return bad(res, 'You already have 5 offers awaiting approval');
-  const o = db.insert('offers', { title, subtitle, code, expiry: exp, businessId: b._id, businessName: b.name, city: b.city, ownerId: req.user._id, status: 'pending', active: true }, 'off');
+  let disc; try { disc = require('../util').discountFields(req.body); } catch (e) { return bad(res, e.message); }
+  if (disc.discountType && code.length < 3) return bad(res, 'Enter an offer code (min 3 characters) for the discount');
+  const o = db.insert('offers', { ...disc, title, subtitle, code, expiry: exp, businessId: b._id, businessName: b.name, city: b.city, ownerId: req.user._id, status: 'pending', active: true }, 'off');
   notify(null, 'New offer to review', `${b.name}: ${title}`, 'inbox');
   res.status(201).json({ message: 'Offer submitted. It goes live after admin approval.', data: o });
 });

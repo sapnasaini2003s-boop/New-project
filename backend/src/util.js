@@ -158,6 +158,8 @@ const FEATURE_DEFAULTS = {
 const BLOG_CATS = ['General', 'Food & Dining', 'Travel & Tourism', 'Education', 'Health & Wellness', 'Business Tips', 'Events & Festivals', 'Real Estate', 'Jobs & Careers', 'Offers & Deals'];
 // Admin-editable prices (Settings) override the env defaults
 const prices = () => { const s = db.settings(); const n = (v, d) => (Number(v) > 0 ? Number(v) : d); return { premium: n(s.premiumPrice, Number(process.env.PREMIUM_PLAN_PRICE || 2999)), premiumDays: n(s.premiumDays, Number(process.env.PREMIUM_PLAN_DAYS || 365)), bannerPerDay: n(s.bannerPerDay, Number(process.env.BANNER_PRICE_PER_DAY || 199)), categoryBannerPerDay: n(s.categoryBannerPerDay, Number(process.env.CATEGORY_BANNER_PRICE_PER_DAY || 149)) }; };
+// discount part of an offer (percent | flat), shared by admin + vendor offer forms
+const discountFields = (b) => { const type = ['percent', 'flat'].includes(b.discountType) ? b.discountType : ''; const val = Number(b.discountValue) || 0; if (!type) return { discountType: '', discountValue: 0, minOrder: 0, maxDiscount: 0 }; if (!(val > 0) || (type === 'percent' && val > 90) || val > 100000) throw new Error(type === 'percent' ? 'Percent discount must be between 1 and 90' : 'Enter a valid flat discount amount'); return { discountType: type, discountValue: val, minOrder: Math.max(0, Math.min(1e6, Number(b.minOrder) || 0)), maxDiscount: type === 'percent' ? Math.max(0, Math.min(1e6, Number(b.maxDiscount) || 0)) : 0 }; };
 const blogCats = () => (Array.isArray(db.settings().blogCategories) && db.settings().blogCategories.length ? db.settings().blogCategories : BLOG_CATS);
 const features = () => ({ ...FEATURE_DEFAULTS, ...(db.settings().features || {}) });
 const requireFeature = (k, msg) => (req, res, next) => (features()[k] ? next() : res.status(403).json({ message: msg || 'This feature is currently disabled by admin' }));
@@ -192,4 +194,4 @@ async function sendWhatsAppOtp(to, code) {
   return waPost({ to: '91' + to, type: 'text', text: { body: `Your Tap2Bizz login OTP is ${code}. Valid for 5 minutes. Do not share it with anyone.` } });
 }
 
-module.exports = { prices, blogCats, sendWhatsApp, sendWhatsAppOtp, waCfg,  hasBooster, cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };
+module.exports = { discountFields, prices, blogCats, sendWhatsApp, sendWhatsAppOtp, waCfg,  hasBooster, cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };

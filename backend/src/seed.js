@@ -68,6 +68,7 @@ async function seed(reset) {
   [['Best Restaurants in Udupi', 'https://www.youtube.com/watch?v=ScMzIvxBSi4'], ['Top Hospitals in Mangaluru', 'https://www.youtube.com/watch?v=ScMzIvxBSi4'], ['Home Construction Ideas', 'https://www.youtube.com/watch?v=ScMzIvxBSi4'], ['Beauty Tips & Care', 'https://www.youtube.com/watch?v=ScMzIvxBSi4'], ['Local Events & Celebrations', 'https://www.youtube.com/watch?v=ScMzIvxBSi4']]
     .forEach(([title, url]) => db.insert('videos', { title, url, active: true }, 'vid'));
   db.insert('offers', { title: 'FLAT 50% OFF', subtitle: 'On all services', businessName: 'Sagar Spa & Salon', city: 'Manipal', code: 'TAP2B50', expiry: 'Valid till 31 Oct 2026', active: true }, 'off');
+  db.insert('offers', { title: '10% OFF on your first order', subtitle: 'Use this code at checkout on any menu', businessName: 'All businesses', businessId: '', city: 'Udupi', code: 'WELCOME10', discountType: 'percent', discountValue: 10, minOrder: 0, maxDiscount: 200, expiry: '2027-12-31', active: true }, 'off');
   db.insert('offers', { title: 'BUY 1 GET 1', subtitle: 'Premium meals', businessName: 'Hotel Supreme', city: 'Udupi', code: 'SUPREMEBOGO', expiry: 'Weekends', active: true }, 'off');
   db.insert('blogs', { category: 'Real Estate', title: 'Top 10 Student PGs near Manipal', excerpt: 'How to pick a safe, affordable PG near MIT/MAHE.', body: 'Check the owner\'s registration, visit in person, verify food & Wi-Fi...', published: true }, 'blo');
 
