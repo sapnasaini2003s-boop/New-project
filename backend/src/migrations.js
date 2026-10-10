@@ -40,7 +40,7 @@ const MIGRATIONS = [
   { id: '005', name: 'Default SEO & contact settings', run: () => {
     const s = db.settings();
     if (!s.seo) db.setSettings({ seo: { title: 'PVRS HUB – Udupi & Mangaluru Local Business Directory', description: 'Find verified local businesses in Udupi, Manipal, Malpe and Mangaluru.' } });
-    if (!s.contact) db.setSettings({ contact: { email: 'support@yourdomain.in', grievance: 'legal@yourdomain.in', phone: '' } });
+    if (!s.contact) db.setSettings({ contact: { email: 'suhantudupi@gmail.com', grievance: 'suhantudupi@gmail.com', phone: '' } });
     return 'ok';
   } },
   { id: '006', name: 'Biz Boosters catalogue (paid add-ons & website-creation leads)', run: () => {

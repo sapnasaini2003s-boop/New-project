@@ -39,7 +39,7 @@ We do not sell personal data. Data is retained while your account is active and 
   grievance: { title: 'Grievance Officer', body: `In accordance with the Information Technology Act, 2000 and the IT (Intermediary Guidelines) Rules, 2021, complaints and takedown requests may be sent to:
 
 Grievance Officer — PVRS HUB
-Email: legal@yourdomain.in
+Email: suhantudupi@gmail.com
 Response: acknowledgement within 24 hours, resolution within 15 days.` },
   about: { title: 'About PVRS HUB', body: 'PVRS HUB is a verified local business directory for Udupi, Manipal, Malpe and Mangaluru — built for students, tourists and residents of coastal Karnataka.' },
 };
