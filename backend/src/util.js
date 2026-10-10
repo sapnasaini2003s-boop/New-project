@@ -128,10 +128,10 @@ function getMailer() {
   return mailer;
 }
 const emailHtml = (title, message) => `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
-  <div style="background:#0055FF;color:#fff;padding:18px 24px;font-size:20px;font-weight:bold">Tap2Bizz <span style="color:#FF6600">HUB</span></div>
+  <div style="background:#0055FF;color:#fff;padding:18px 24px;font-size:20px;font-weight:bold">Tap<span style="color:#FF6600">2</span>Bizz</div>
   <div style="padding:24px"><h2 style="margin:0 0 12px;color:#0b1b3f">${title}</h2><p style="color:#374151;line-height:1.6">${message}</p>
   <a href="${(process.env.FRONTEND_URL || '').split(',')[0]}/vendor/dashboard" style="display:inline-block;margin-top:16px;background:#FF6600;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Open dashboard</a></div>
-  <div style="background:#f9fafb;color:#9ca3af;font-size:12px;padding:12px 24px">Grievance: legal@yourdomain.in</div></div>`;
+  <div style="background:#f9fafb;color:#9ca3af;font-size:12px;padding:12px 24px">Grievance: suhantudupi@gmail.com</div></div>`;
 function notify(userId, title, message, channel = 'email') {
   const u = userId && db.get('users', userId);
   // vendors log in by mobile only, so fall back to the e-mail on their business listing
@@ -155,6 +155,8 @@ const FEATURE_DEFAULTS = {
   bannerBooking: true, premiumUpgrade: true, reports: false, complaintForm: false, orderOnline: true, cartOrders: true, grievanceForm: true,
   maintenance: false,     // shows maintenance banner + blocks vendor submissions
 };
+const BLOG_CATS = ['General', 'Food & Dining', 'Travel & Tourism', 'Education', 'Health & Wellness', 'Business Tips', 'Events & Festivals', 'Real Estate', 'Jobs & Careers', 'Offers & Deals'];
+const blogCats = () => (Array.isArray(db.settings().blogCategories) && db.settings().blogCategories.length ? db.settings().blogCategories : BLOG_CATS);
 const features = () => ({ ...FEATURE_DEFAULTS, ...(db.settings().features || {}) });
 const requireFeature = (k, msg) => (req, res, next) => (features()[k] ? next() : res.status(403).json({ message: msg || 'This feature is currently disabled by admin' }));
 
@@ -188,4 +190,4 @@ async function sendWhatsAppOtp(to, code) {
   return waPost({ to: '91' + to, type: 'text', text: { body: `Your Tap2Bizz login OTP is ${code}. Valid for 5 minutes. Do not share it with anyone.` } });
 }
 
-module.exports = { sendWhatsApp, sendWhatsAppOtp, waCfg,  hasBooster, cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };
+module.exports = { blogCats, sendWhatsApp, sendWhatsAppOtp, waCfg,  hasBooster, cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };

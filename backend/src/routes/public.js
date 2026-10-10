@@ -119,7 +119,8 @@ router.post('/leads', auth(false), async (req, res) => {
 router.get('/offers', (req, res) => res.json(db.all('offers').filter((o) => o.active !== false && (!o.status || o.status === 'approved') && (!o.expiry || new Date(o.expiry) >= new Date(new Date().toDateString())))));
 router.get('/businesses/:id/offers', (req, res) => res.json(db.all('offers').filter((o) => o.businessId === req.params.id && o.active !== false && o.status === 'approved' && (!o.expiry || new Date(o.expiry) >= new Date(new Date().toDateString())))));
 router.get('/boosters', (req, res) => res.json(db.all('boosters').filter((b) => b.active !== false).sort((a, b) => (a.order || 0) - (b.order || 0))));
-router.get('/blogs', (req, res) => res.json(db.all('blogs').filter((b) => b.published !== false)));
+router.get('/blog-categories', (req, res) => res.json(require('../util').blogCats()));
+router.get('/blogs', (req, res) => res.json(db.all('blogs').filter((b) => b.published !== false).map((b) => ({ ...b, category: b.category || 'General' }))));
 router.get('/blogs/:id', (req, res) => { const b = db.get('blogs', req.params.id); b ? res.json(b) : res.status(404).json({ message: 'Not found' }); });
 router.get('/videos', (req, res) => res.json(db.all('videos').filter((v) => v.active !== false)));
 router.get('/pages/:slug', (req, res) => {

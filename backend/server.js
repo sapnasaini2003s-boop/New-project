@@ -16,7 +16,7 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use('/api', limit('global', 400, 60e3));
 app.get('/uploads/public/:name', (req, res, next) => sendStored('public', req.params.name, res).catch(next));
 
-app.get('/', (req, res) => res.json({ message: 'PVRS HUB API running', storage: db.mode() }));
+app.get('/', (req, res) => res.json({ message: 'Tap2Bizz API running', storage: db.mode() }));
 app.get('/api/health', (req, res) => res.json({ ok: true, storage: db.mode() }));
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api', require('./src/routes/public'));
@@ -39,7 +39,7 @@ const PORT = process.env.PORT || 5000;
   await require('./src/seed')(false); // seeds only when DB is empty
   require('./src/migrations').runPending();
   require('./src/jobs').start();
-  app.listen(PORT, () => console.log(`PVRS HUB API on http://localhost:${PORT} (storage: ${db.mode()})`));
+  app.listen(PORT, () => console.log(`Tap2Bizz API on http://localhost:${PORT} (storage: ${db.mode()})`));
 })();
 const bye = async () => { await db.flush(); process.exit(0); };
 process.on('SIGINT', bye); process.on('SIGTERM', bye);

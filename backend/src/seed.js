@@ -39,7 +39,7 @@ We do not sell personal data. Data is retained while your account is active and 
   grievance: { title: 'Grievance Officer', body: `In accordance with the Information Technology Act, 2000 and the IT (Intermediary Guidelines) Rules, 2021, complaints and takedown requests may be sent to:
 
 Grievance Officer — Tap2Bizz
-Email: legal@yourdomain.in
+Email: suhantudupi@gmail.com
 Response: acknowledgement within 24 hours, resolution within 15 days.` },
   about: { title: 'About Tap2Bizz', body: 'Tap2Bizz is a verified local business directory for Udupi, Manipal, Malpe and Mangaluru — built for students, tourists and residents of coastal Karnataka.' },
 };
@@ -67,9 +67,9 @@ async function seed(reset) {
   db.insert('ads', { type: 'hero_video', title: 'Discover Udupi & Mangaluru', subtitle: 'A City of Opportunities', youtubeUrl: 'https://www.youtube.com/watch?v=ScMzIvxBSi4', status: 'approved', createdBy: 'admin' }, 'ad');
   [['Best Restaurants in Udupi', 'https://www.youtube.com/watch?v=ScMzIvxBSi4'], ['Top Hospitals in Mangaluru', 'https://www.youtube.com/watch?v=ScMzIvxBSi4'], ['Home Construction Ideas', 'https://www.youtube.com/watch?v=ScMzIvxBSi4'], ['Beauty Tips & Care', 'https://www.youtube.com/watch?v=ScMzIvxBSi4'], ['Local Events & Celebrations', 'https://www.youtube.com/watch?v=ScMzIvxBSi4']]
     .forEach(([title, url]) => db.insert('videos', { title, url, active: true }, 'vid'));
-  db.insert('offers', { title: 'FLAT 50% OFF', subtitle: 'On all services', businessName: 'Sagar Spa & Salon', city: 'Manipal', code: 'Tap2Bizz50', expiry: 'Valid till 31 Oct 2026', active: true }, 'off');
+  db.insert('offers', { title: 'FLAT 50% OFF', subtitle: 'On all services', businessName: 'Sagar Spa & Salon', city: 'Manipal', code: 'TAP2B50', expiry: 'Valid till 31 Oct 2026', active: true }, 'off');
   db.insert('offers', { title: 'BUY 1 GET 1', subtitle: 'Premium meals', businessName: 'Hotel Supreme', city: 'Udupi', code: 'SUPREMEBOGO', expiry: 'Weekends', active: true }, 'off');
-  db.insert('blogs', { title: 'Top 10 Student PGs near Manipal', excerpt: 'How to pick a safe, affordable PG near MIT/MAHE.', body: 'Check the owner\'s registration, visit in person, verify food & Wi-Fi...', published: true }, 'blo');
+  db.insert('blogs', { category: 'Real Estate', title: 'Top 10 Student PGs near Manipal', excerpt: 'How to pick a safe, affordable PG near MIT/MAHE.', body: 'Check the owner\'s registration, visit in person, verify food & Wi-Fi...', published: true }, 'blo');
 
   const demo = [
     ['Hotel Diana', 'restaurants-and-food', 'Pure Veg Restaurants', 'Udupi', 'premium', { swiggy: 'https://www.swiggy.com', zomato: 'https://www.zomato.com' }, 'featured', 4.8, 1200, 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=400&q=70'],
