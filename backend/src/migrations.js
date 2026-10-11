@@ -46,13 +46,12 @@ const MIGRATIONS = [
   { id: '006', name: 'Biz Boosters catalogue (paid add-ons & website-creation leads)', run: () => {
     if (db.all('boosters').length) return 'already present';
     const B = [
-      ['whatsapp-leads', 'Receive Leads on WhatsApp', 'Quick Lead', 'day', 7, 10, 'activate', '#dcfce7', ['Get WhatsApp alerts when customers view, call or enquire', 'Improve response time & increase engagement', 'Works even on the Free plan'], 1],
-      ['mobile-banner', 'Mobile Banner on Tap2Bizz', 'Most Popular', 'day', 42, 75, 'link', '#fce7f3', ['Display a visually engaging banner on the homepage', 'Be seen by customers searching for you', 'Maximise visibility where it matters most'], 2],
-      ['universal-listing', 'Universal Business Listing', 'New Launch', 'day', 56, 112, 'request', '#e0e7ff', ['We keep your Google Business listing in sync with Tap2Bizz', 'Keep business information up-to-date everywhere', 'Reply to customer reviews with our help'], 3],
-      ['rating-certificate', 'Tap2Bizz Rating Certificate', 'Most Viewed', 'certificate', 6000, 12000, 'request', '#fee2e2', ['Showcase a framed certificate', 'Boost walk-in conversions', 'Increase trust and credibility'], 4],
-      ['trust-seal', 'Trust & Verified Seal', '', 'day', 25, 50, 'activate', '#fef3c7', ['Trust seal shown on your listing and in search results', 'Customers feel safer contacting you', 'Needs an admin-approved listing'], 5],
-      ['verified-badge', 'Tap2Bizz Verified Badge', '', 'day', 21, 42, 'request', '#dbeafe', ['Documents re-verified by our team', 'Verified badge on every listing card', 'Higher click-through from search'], 6],
-      ['website', 'Get Your Business Website', 'Recommended', 'day', 14, 50, 'request', '#ffedd5', ['Mobile-responsive website for your business', '100+ design templates to choose from', 'Register your own domain name'], 7],
+      ['trust-seal', 'Tap2Bizz Trust & Verified', '', 'day', 25, 50, 'activate', '#fef3c7', ['Showcase your verified business identity.', 'Display your approved trust status.', 'Build customer confidence in your business.'], 1],
+      ['website', 'Website Launchpad', 'Recommended', 'day', 14, 50, 'request', '#ffedd5', ['Bring your business online professionally.', 'Present your services and contact details.', 'Give customers a website to explore.'], 2],
+      ['whatsapp-leads', 'WhatsApp Connect', 'Quick Lead', 'day', 7, 10, 'activate', '#dcfce7', ['Get alerts for incoming customer enquiries.', 'Connect with interested customers directly.', 'Make follow-ups more convenient.'], 3],
+      ['mobile-banner', 'Spotlight Ads', 'Most Popular', 'day', 42, 75, 'link', '#fce7f3', ['Put your business in the spotlight.', 'Promote offers and services to visitors.', 'Choose from available ad placements.'], 4],
+      ['rating-certificate', 'Business Star Certificate', 'Most Viewed', 'certificate', 6000, 12000, 'request', '#fee2e2', ['Celebrate your business identity.', 'Receive a professionally designed certificate.', 'Display your achievement at your premises.'], 5],
+      ['universal-listing', 'Business Reach', 'New Launch', 'day', 56, 112, 'request', '#e0e7ff', ['Extend your presence across supported platforms.', 'Keep eligible business details consistent.', 'Simplify profile update management.'], 6],
     ];
     B.forEach(([key, title, tag, unit, price, mrp, kind, color, benefits, order]) => db.insert('boosters', { key, title, tag, unit, price, mrp, kind, color, benefits, order, active: true }, 'bst'));
     return `${B.length} boosters added`;
@@ -70,7 +69,7 @@ const MIGRATIONS = [
         if (s.contact.grievance === 'legal@yourdomain.in') { s.contact.grievance = 'suhantudupi@gmail.com'; c1++; }
         if (c1 > 0) db.setSettings(s);
       }
-      for (const p of db.all('pages')) {
+      for (const p of []) { // legacy: pages live in settings.pages (handled by 009)
         let changed = false;
         let content = p.content;
         if (content && typeof content === 'string') {
@@ -110,6 +109,13 @@ const MIGRATIONS = [
       return `Updated ${c} pages in settings.`;
     } 
   },
+  { id: '010', name: 'Bizz Growth: own service names + 3 benefits each; merge Verified into Trust & Verified', run: () => {
+    const NEW = { 'trust-seal': ['Tap2Bizz Trust & Verified', ['Showcase your verified business identity.', 'Display your approved trust status.', 'Build customer confidence in your business.'], 1], 'website': ['Website Launchpad', ['Bring your business online professionally.', 'Present your services and contact details.', 'Give customers a website to explore.'], 2], 'whatsapp-leads': ['WhatsApp Connect', ['Get alerts for incoming customer enquiries.', 'Connect with interested customers directly.', 'Make follow-ups more convenient.'], 3], 'mobile-banner': ['Spotlight Ads', ['Put your business in the spotlight.', 'Promote offers and services to visitors.', 'Choose from available ad placements.'], 4], 'rating-certificate': ['Business Star Certificate', ['Celebrate your business identity.', 'Receive a professionally designed certificate.', 'Display your achievement at your premises.'], 5], 'universal-listing': ['Business Reach', ['Extend your presence across supported platforms.', 'Keep eligible business details consistent.', 'Simplify profile update management.'], 6] };
+    let n = 0;
+    for (const [key, [title, benefits, order]] of Object.entries(NEW)) { const b = db.find('boosters', (x) => x.key === key)[0]; if (b) { db.update('boosters', b._id, { title, benefits, order }); n++; } }
+    const vb = db.find('boosters', (x) => x.key === 'verified-badge')[0]; if (vb) db.remove('boosters', vb._id);
+    return `${n} renamed${vb ? ', verified-badge merged' : ''}`;
+  } },
 ];
 
 // One-off maintenance tasks the admin can trigger manually
