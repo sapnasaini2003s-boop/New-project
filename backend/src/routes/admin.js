@@ -440,7 +440,13 @@ router.put('/orders/:id', (req, res) => {
   if (!require('./orders').STATUS.includes(req.body.status)) return res.status(400).json({ message: 'Invalid status' });
   db.update('orders', o._id, { status: req.body.status, adminNote: String(req.body.adminNote ?? o.adminNote ?? '').trim().slice(0, 300) }); db.log('order_' + req.body.status, req.user._id, { id: o._id }); res.json({ message: 'Updated' });
 });
-router.get('/category-leads', (req, res) => res.json(db.all('categoryLeads').slice().reverse()));
+// Category leads come with the "top list" (premium first, then rating) so admin can send it on WhatsApp in one tap
+const topFor = (l) => db.find('businesses', (b) => b.status === 'approved' && l.categorySlug && b.category === l.categorySlug && (!l.city || b.city === l.city))
+  .sort((a, b) => (isPremium(b) - isPremium(a)) || ((b.rating || 0) - (a.rating || 0))).slice(0, 8)
+  .map((b) => ({ id: b._id, name: b.name, city: b.city, rating: b.rating || 0, phone: isPremium(b) ? (b.contact?.phone || '') : '' }));
+router.get('/category-leads', (req, res) => res.json(db.all('categoryLeads').slice().reverse().map((l) => ({ ...l, top: topFor(l) }))));
+router.delete('/category-leads/:id', (req, res) => res.json({ ok: db.remove('categoryLeads', req.params.id) }));
+router.delete('/booster-requests/:id', (req, res) => res.json({ ok: db.remove('boosterRequests', req.params.id) }));
 router.put('/category-leads/:id', (req, res) => { const l = db.get('categoryLeads', req.params.id); if (!l) return res.status(404).json({ message: 'Not found' }); if (!['new', 'contacted', 'won', 'lost'].includes(req.body.status)) return res.status(400).json({ message: 'Invalid status' }); db.update('categoryLeads', l._id, { status: req.body.status }); res.json({ message: 'Updated' }); });
 router.get('/booster-requests', (req, res) => res.json(db.all('boosterRequests').slice().reverse()));
 router.put('/booster-requests/:id', (req, res) => {

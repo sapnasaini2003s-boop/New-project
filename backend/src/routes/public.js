@@ -201,7 +201,15 @@ router.post('/category-leads', limit('catlead', 5, 10 * 60e3), (req, res) => {
   if (nm.length < 2 || !isPhone(req.body.phone)) return res.status(400).json({ message: 'Enter your name and a valid 10-digit mobile' });
   if (!topic) return res.status(400).json({ message: 'Missing category' });
   if (db.find('categoryLeads', (l) => l.phone === req.body.phone && l.topic === topic && Date.now() - new Date(l.createdAt || 0) < 60 * 60e3).length) return res.status(429).json({ message: 'We already have your request — we will contact you soon.' });
-  db.insert('categoryLeads', { name: nm, phone: req.body.phone, topic, city, status: 'new' }, 'cl');
+  const slug = clean(req.body.categorySlug, 60);
+  const lead = db.insert('categoryLeads', { name: nm, phone: req.body.phone, topic, categorySlug: slug, city, status: 'new', vendorsNotified: 0 }, 'cl');
+  // Sync: premium businesses of this category (and city) get the lead in their inbox
+  let n = 0;
+  if (slug) for (const b of db.find('businesses', (x) => x.status === 'approved' && x.category === slug && (!city || x.city === city))) {
+    if (b.ownerId && isPremium(b)) { notify(b.ownerId, `New customer looking for ${topic}`, `${nm} (+91 ${req.body.phone}${city ? ', ' + city : ''}) asked for top ${topic}. Call them now.`, 'inbox'); n++; }
+  }
+  if (n) db.update('categoryLeads', lead._id, { vendorsNotified: n });
+  notify(null, 'New category lead', `${nm} +91 ${req.body.phone} — Top ${topic}${city ? ' · ' + city : ''}`, 'inbox');
   res.status(201).json({ message: 'Thanks! We will send you the verified list shortly.' });
 });
 
