@@ -427,7 +427,7 @@ function boosterBody(b) {
   if (mrp && mrp < price) throw new Error('MRP cannot be lower than the price');
   if (!BKINDS.includes(b.kind)) throw new Error('Invalid type');
   if (b.kind === 'activate' && !['whatsapp-leads', 'trust-seal'].includes(b.key)) throw new Error('Only the WhatsApp-leads and Trust-seal boosters can be sold with instant activation');
-  return { title, tag: String(b.tag || '').slice(0, 20), unit: ['day', 'month', 'year', 'certificate'].includes(b.unit) ? b.unit : 'day', price, mrp, kind: b.kind, color: /^#[0-9a-f]{6}$/i.test(b.color || '') ? b.color : '#e0e7ff',
+  return { title, icon: ['🚀', '🛡', '🌐', '💬', '📢', '🏆', '📍', '⭐'].includes(b.icon) ? b.icon : '🚀', tag: String(b.tag || '').slice(0, 20), unit: ['day', 'month', 'year', 'certificate'].includes(b.unit) ? b.unit : 'day', price, mrp, kind: b.kind, color: /^#[0-9a-f]{6}$/i.test(b.color || '') ? b.color : '#e0e7ff',
     benefits: (Array.isArray(b.benefits) ? b.benefits : String(b.benefits || '').split('\n')).map((x) => String(x).trim().slice(0, 120)).filter(Boolean).slice(0, 6), order: Number(b.order) || 99, active: b.active !== false };
 }
 router.get('/boosters', (req, res) => res.json(db.all('boosters').sort((a, b) => (a.order || 0) - (b.order || 0))));
