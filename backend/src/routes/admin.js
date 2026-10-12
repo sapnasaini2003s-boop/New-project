@@ -408,6 +408,13 @@ router.put('/settings', (req, res) => {
   res.json(db.setSettings(b));
 });
 
+// hero background image (desktop / mobile) — upload or reset
+router.post('/hero-image', upload.fields([{ name: 'image', maxCount: 1 }]), (req, res) => {
+  const slot = req.body.slot === 'mobile' ? 'bgMobile' : 'bgDesktop';
+  const hero = { ...(db.settings().hero || {}) };
+  if (req.files?.image) hero[slot] = fileUrl(req.files.image[0]); else if (req.body.reset) delete hero[slot]; else return res.status(400).json({ message: 'Choose an image' });
+  db.setSettings({ hero }); res.json({ hero });
+});
 router.get('/payments', (req, res) => res.json(db.all('payments').slice().reverse()));
 router.get('/notifications', (req, res) => res.json(db.all('notifications').slice(-100).reverse()));
 router.post('/restore/:id', (req, res) => {
