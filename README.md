@@ -7,8 +7,7 @@ Next.js 16 frontend + Express backend. JSON-file database (`backend/data/db.json
 cd backend && npm install && npm run dev        # http://localhost:5000
 cd frontend && npm install && npm run dev       # http://localhost:3000
 ```
-- Admin login: mobile = `ADMIN_PHONE` in backend/.env (default 9999999999), OTP `123456` (dev mode) → `/admin`
-- Reset demo data: `cd backend && npm run seed`
+- Admin login: mobile = `ADMIN_PHONE` in backend environment variable, OTP from your configured auth provider → `/admin`
 
 ## Env
 backend/.env – see `.env.example` (JWT_SECRET, ADMIN_PHONE, OTP_MODE, FIREBASE_API_KEY, RAZORPAY_KEY_ID/SECRET, WHATSAPP_TOKEN/PHONE_NUMBER_ID, prices).
@@ -36,9 +35,9 @@ The PDF asks for WordPress + ListingPro; this repo is a custom Node/Next build i
 Render / Railway free instances **wipe their disk on every restart/redeploy** — that is why data (users, listings, uploads) was disappearing.
 The backend now saves **everything in MongoDB** (data + uploaded images/documents via GridFS) whenever `MONGODB_URI` works.
 
-1. Create a free cluster on MongoDB Atlas → Database Access: add user → Network Access: allow `0.0.0.0/0`.
-2. Copy the connection string, e.g. `mongodb+srv://user:pass@cluster0.xxxx.mongodb.net/?retryWrites=true&w=majority`
-3. Render → backend service → Environment: set `MONGODB_URI`, `MONGODB_DB=pvrs_hub`, `JWT_SECRET`, `ADMIN_PHONE`. Redeploy.
+1. Create a free cluster on MongoDB Atlas → Database Access: add user → Network Access: allow your server IP.
+2. Copy the connection string, e.g. `mongodb+srv://<username>:<password>@cluster0.xxxx.mongodb.net/?retryWrites=true&w=majority`
+3. Render → backend service → Environment: set `MONGODB_URI`, `MONGODB_DB`, `JWT_SECRET`, `ADMIN_PHONE`. Redeploy.
 4. Check `https://<backend>/api/health` → must show `"storage":"mongo"`. If it shows `"file"`, the URI is wrong (see Render logs).
 5. Vercel → frontend → Environment: `NEXT_PUBLIC_API_URL=https://<backend>.onrender.com`, redeploy.
 
@@ -58,9 +57,9 @@ Sidebar groups: Dashboard · **Analytics** (charts, 7/30/90-day) · Approval Que
 
 Email alerts: set `SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM, ADMIN_EMAIL` — plan/licence expiry, approvals and new-listing alerts are then emailed (HTML template).
 
-## Email (Gmail SMTP — pvrshub@gmail.com)
+## Email (Gmail SMTP Setup)
 1. Google Account → Security → enable **2-Step Verification**.
-2. Security → **App passwords** → create "PVRS HUB" → copy the 16-letter code.
-3. On Render (backend → Environment) add: `SMTP_USER=pvrshub@gmail.com`, `SMTP_PASS=<app password>`, `MAIL_FROM="PVRS HUB <pvrshub@gmail.com>"`, `ADMIN_EMAIL=pvrshub@gmail.com` (host/port default to smtp.gmail.com:465).
+2. Security → **App passwords** → create one → copy the 16-letter code.
+3. In backend environment variables, add: `SMTP_USER=<your-email>`, `SMTP_PASS=<app-password>`, `MAIL_FROM="Tap2Bizz <<your-email>>"`, `ADMIN_EMAIL=<your-email>` (host/port default to smtp.gmail.com:465).
 4. Admin → System & Migrations → **Send test email**.
 Vendors log in by mobile only, so expiry/approval emails go to the e-mail on their business listing.
