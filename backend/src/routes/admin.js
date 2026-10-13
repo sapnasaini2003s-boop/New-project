@@ -159,7 +159,7 @@ router.put('/users/:id', (req, res) => {
 
 // ---- ads ----
 router.get('/ads', (req, res) => res.json(db.all('ads').slice().reverse()));
-const AD_TYPES = ['top_banner', 'middle_banner', 'category_banner', 'promo', 'hero_video'];
+const AD_TYPES = ['top_banner', 'middle_banner', 'category_banner', 'promo', 'hero_video', 'offers_banner', 'videos_banner'];
 const adSlug = (b) => { const s = String(b.categorySlug || '').trim(); if (b.type === 'category_banner' && s && !db.find('categories', (c) => c.slug === s).length) throw new Error('Unknown category'); return b.type === 'category_banner' ? s : ''; };
 router.post('/ads', upload.fields([{ name: 'image', maxCount: 1 }]), (req, res) => {
   const b = req.body;

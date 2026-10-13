@@ -37,6 +37,8 @@ router.get('/home', (req, res) => {
       top: ads.filter((a) => a.type === 'top_banner').map(withThumb),
       middle: ads.filter((a) => a.type === 'middle_banner').map(withThumb),
       promo: ads.filter((a) => a.type === 'promo'),
+      offers: ads.filter((a) => a.type === 'offers_banner').map(withThumb),
+      videos: ads.filter((a) => a.type === 'videos_banner').map(withThumb),
       heroVideo: ads.filter((a) => a.type === 'hero_video'),
     },
     videos: db.all('videos').filter((v) => v.active !== false).slice(0, 10),
