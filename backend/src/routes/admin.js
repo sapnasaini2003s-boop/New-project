@@ -369,7 +369,7 @@ const { discountFields } = require('../util');
 const CONTENT = {
   offers: (b) => { const d = { title: txt(b.title, 80), subtitle: txt(b.subtitle, 160), businessName: txt(b.businessName, 80), city: txt(b.city, 40), code: txt(b.code, 20).toUpperCase(), expiry: txt(b.expiry, 10), businessId: txt(b.businessId, 40), ...discountFields(b) }; if (d.discountType && !d.code) throw new Error('Enter an offer code for the discount'); if (d.title.length < 3) throw new Error('Offer title is required (min 3 characters)'); if (d.expiry && isNaN(new Date(d.expiry))) throw new Error('Enter a valid expiry date'); return d; },
   blogs: (b) => { const cats = require('../util').blogCats(); const d = { category: cats.includes(b.category) ? b.category : 'General', title: txt(b.title, 120), excerpt: txt(b.excerpt, 300), body: String(b.body ?? '').slice(0, 20000), externalLink: txt(b.externalLink, 400) }; if (d.title.length < 3) throw new Error('Blog title is required (min 3 characters)'); if (d.externalLink && !urlOk(d.externalLink)) throw new Error('External link must start with https://'); if (!d.body.trim() && !d.externalLink) throw new Error('Write the blog body or add an external link'); return d; },
-  videos: (b) => { const d = { title: txt(b.title, 100), url: txt(b.url, 400), category: txt(b.category, 40) }; if (d.title.length < 3) throw new Error('Video title is required'); if (!urlOk(d.url)) throw new Error('Enter a valid video link (https://…)'); return d; },
+  videos: (b) => { const d = { title: txt(b.title, 100), url: txt(b.url, 400), category: txt(b.category, 40) }; if (d.title.length < 3) throw new Error('Video title is required'); if (!urlOk(d.url)) throw new Error('Enter a valid video link (https://…)'); if (!/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/live\/|\/v\/)[\w-]{11}/.test(d.url)) throw new Error('Paste a YouTube video link (e.g. https://www.youtube.com/watch?v=XXXXXXXXXXX or https://youtu.be/XXXXXXXXXXX)'); return d; },
 };
 for (const c of ['offers', 'blogs', 'videos']) {
   router.get(`/${c}`, (req, res) => res.json(db.all(c).slice().reverse()));
@@ -408,6 +408,8 @@ router.put('/settings', (req, res) => {
   res.json(db.setSettings(b));
 });
 
+// generic image upload (category icons etc.) → returns the stored URL
+router.post('/upload-image', upload.fields([{ name: 'image', maxCount: 1 }]), (req, res) => { if (!req.files?.image) return res.status(400).json({ message: 'Choose an image' }); res.json({ url: fileUrl(req.files.image[0]) }); });
 // hero background image (desktop / mobile) — upload or reset
 router.post('/hero-image', upload.fields([{ name: 'image', maxCount: 1 }]), (req, res) => {
   const slot = req.body.slot === 'mobile' ? 'bgMobile' : 'bgDesktop';

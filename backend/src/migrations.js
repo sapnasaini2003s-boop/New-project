@@ -123,6 +123,19 @@ const MIGRATIONS = [
     const vb = db.find('boosters', (x) => x.key === 'verified-badge')[0]; if (vb) db.remove('boosters', vb._id);
     return `${n} updated${vb ? ', verified-badge merged' : ''}`;
   } },
+  { id: '011', name: 'Add Refund & Cancellation legal page', run: () => {
+    const pages = { ...(db.settings().pages || {}) };
+    if (pages.refund) return 'already present';
+    pages.refund = { title: 'Refund & Cancellation', body: `Refund & Cancellation Policy — Tap2Bizz
+
+1. Free listing: no payment is taken, so no refund applies.
+2. Premium, banner and Bizz Growth services: fees are charged for visibility and promotion starting when the service goes live. Once live, fees are non-refundable.
+3. If you were charged but the service was not activated within 48 hours, or you were charged twice by mistake, write to us with your payment reference and we will refund the amount to the original payment method within 7 working days.
+4. You may cancel a paid plan at any time; it stays active until the paid period ends and is not renewed automatically.
+5. Food, product or service orders booked through Tap2Bizz are fulfilled by the business directly. Payment, delivery, refunds and cancellations for those orders are handled between you and the business.
+6. To request a refund or cancellation, contact the Grievance Officer (see Grievance Redressal page) with your registered mobile number and payment details.`, updatedAt: new Date().toISOString() };
+    db.setSettings({ pages }); return 'added';
+  } },
 ];
 
 // One-off maintenance tasks the admin can trigger manually

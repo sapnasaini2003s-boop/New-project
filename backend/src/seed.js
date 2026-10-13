@@ -36,6 +36,14 @@ We do not sell personal data. Data is retained while your account is active and 
 4. Free plan: one profile image; Call/WhatsApp buttons hidden. Premium plan: contact buttons, gallery, banner and video embeds.
 5. Subscription and ad fees are non-refundable once the service is live.
 6. Tap2Bizz may remove any listing without notice upon a valid takedown request or legal order.` },
+  refund: { title: 'Refund & Cancellation', body: `Refund & Cancellation Policy — Tap2Bizz
+
+1. Free listing: no payment is taken, so no refund applies.
+2. Premium, banner and Bizz Growth services: fees are charged for visibility and promotion starting when the service goes live. Once live, fees are non-refundable.
+3. If you were charged but the service was not activated within 48 hours, or you were charged twice by mistake, write to us with your payment reference and we will refund the amount to the original payment method within 7 working days.
+4. You may cancel a paid plan at any time; it stays active until the paid period ends and is not renewed automatically.
+5. Food, product or service orders booked through Tap2Bizz are fulfilled by the business directly. Payment, delivery, refunds and cancellations for those orders are handled between you and the business.
+6. To request a refund or cancellation, contact the Grievance Officer (see Grievance Redressal page) with your registered mobile number and payment details.` },
   grievance: { title: 'Grievance Officer', body: `In accordance with the Information Technology Act, 2000 and the IT (Intermediary Guidelines) Rules, 2021, complaints and takedown requests may be sent to:
 
 Grievance Officer — Tap2Bizz
