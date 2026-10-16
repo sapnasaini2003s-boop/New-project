@@ -120,10 +120,23 @@ function parseJSON(v, fallback) { if (v == null || v === '') return fallback; if
 let mailer = null;
 function getMailer() {
   if (mailer !== null) return mailer;
-  const host = process.env.SMTP_HOST || (process.env.SMTP_USER && process.env.SMTP_PASS ? 'smtp.gmail.com' : '');
-  if (!host || !process.env.SMTP_PASS) return (mailer = false);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  if (!pass || (!process.env.SMTP_HOST && !user)) return (mailer = false);
   try {
-    mailer = require('nodemailer').createTransport({ host, port: Number(process.env.SMTP_PORT || 465), secure: Number(process.env.SMTP_PORT || 465) === 465, auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } });
+    if (!process.env.SMTP_HOST || process.env.SMTP_HOST === 'smtp.gmail.com' || (user && user.endsWith('@gmail.com'))) {
+      mailer = require('nodemailer').createTransport({
+        service: 'gmail',
+        auth: { user, pass: pass.replace(/\s+/g, '') }
+      });
+    } else {
+      mailer = require('nodemailer').createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT || 465),
+        secure: Number(process.env.SMTP_PORT || 465) === 465,
+        auth: { user, pass: pass.replace(/\s+/g, '') }
+      });
+    }
   } catch (e) { console.error('[mail] init failed', e.message); mailer = false; }
   return mailer;
 }

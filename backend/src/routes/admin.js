@@ -256,7 +256,7 @@ router.get('/system', (req, res) => {
       { key: 'otp', name: 'Login OTP (Firebase SMS / WhatsApp)', ok: (env.OTP_MODE === 'firebase' && !!env.FIREBASE_API_KEY) || env.OTP_MODE === 'whatsapp', hint: 'OTP_MODE=firebase + FIREBASE_API_KEY (backend) and NEXT_PUBLIC_FIREBASE_* (frontend). Now: test OTP 123456' },
       { key: 'razorpay', name: 'Razorpay payments', ok: !!(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET), hint: 'RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET. Now: test/mock payments' },
       { key: 'whatsapp', name: 'WhatsApp lead alerts', ok: !!(env.WHATSAPP_TOKEN && (env.WHATSAPP_PHONE_NUMBER_ID || env.WHATSAPP_PHONE_ID)), hint: 'WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID (Meta Cloud API). For WhatsApp login OTP also set OTP_MODE=whatsapp and WHATSAPP_OTP_TEMPLATE' },
-      { key: 'email', name: 'Email alerts (SMTP)', ok: !!(env.SMTP_PASS && (env.SMTP_HOST || env.SMTP_USER)), hint: 'Gmail: SMTP_USER=suhantudupi@gmail.com + SMTP_PASS=<16-letter app password> (SMTP_HOST/PORT optional), MAIL_FROM, ADMIN_EMAIL' },
+      { key: 'email', name: 'Email alerts (SMTP)', ok: !!(env.SMTP_PASS && (env.SMTP_HOST || env.SMTP_USER)), hint: 'Gmail: set SMTP_USER (your Gmail) and SMTP_PASS (16-letter App Password) in Render Dashboard -> Environment' },
       { key: 'jwt', name: 'Secure JWT secret', ok: !!env.JWT_SECRET && !/change|dev-secret/.test(env.JWT_SECRET), hint: 'Set a long random JWT_SECRET' },
     ],
   });
@@ -267,9 +267,9 @@ router.post('/system/task/:id', (req, res) => {
   const result = t.run(); db.log('task_' + req.params.id, req.user._id, { result }); res.json({ message: result });
 });
 router.post('/system/test-email', async (req, res) => {
-  const m = require('../util').getMailer(); const to = req.body.to || process.env.ADMIN_EMAIL;
-  if (!m) return res.status(400).json({ message: 'SMTP is not configured — set SMTP_USER=suhantudupi@gmail.com and SMTP_PASS (Gmail app password) on Render' });
-  if (!to) return res.status(400).json({ message: 'Enter an email address' });
+  const m = require('../util').getMailer(); const to = req.body.to || process.env.ADMIN_EMAIL || process.env.SMTP_USER;
+  if (!m) return res.status(400).json({ message: 'SMTP is not configured — please set SMTP_USER and SMTP_PASS (16-letter Google App Password) in Render Dashboard -> Environment' });
+  if (!to) return res.status(400).json({ message: 'Enter a valid recipient email address' });
   try { await m.sendMail({ from: process.env.MAIL_FROM || process.env.SMTP_USER, to, subject: 'Tap2Bizz test email', text: 'SMTP is working 🎉' }); res.json({ message: `Test email sent to ${to}` }); }
   catch (e) { res.status(500).json({ message: e.message }); }
 });
