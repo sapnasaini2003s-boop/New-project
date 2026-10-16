@@ -246,6 +246,7 @@ router.delete('/team/:id', (req, res) => {
 // ---- system: health, integrations, migrations, backups ----
 router.get('/system', (req, res) => {
   const mig = require('../migrations'); const mem = process.memoryUsage(); const env = process.env;
+  const sSmtp = db.settings()?.smtp || {};
   const counts = {}; for (const c of ['users', 'businesses', 'categories', 'ads', 'payments', 'leads', 'claims', 'reviews', 'enquiries', 'reports', 'favorites', 'offers', 'blogs', 'videos', 'notifications', 'audit']) counts[c] = db.all(c).length;
   res.json({
     storage: db.mode(), failedWrites: db.failedWrites(), node: process.version, uptimeSec: Math.round(process.uptime()), memoryMB: Math.round(mem.rss / 1048576), env: env.NODE_ENV || 'development',
@@ -256,7 +257,7 @@ router.get('/system', (req, res) => {
       { key: 'otp', name: 'Login OTP (Firebase SMS / WhatsApp)', ok: (env.OTP_MODE === 'firebase' && !!env.FIREBASE_API_KEY) || env.OTP_MODE === 'whatsapp', hint: 'OTP_MODE=firebase + FIREBASE_API_KEY (backend) and NEXT_PUBLIC_FIREBASE_* (frontend). Now: test OTP 123456' },
       { key: 'razorpay', name: 'Razorpay payments', ok: !!(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET), hint: 'RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET. Now: test/mock payments' },
       { key: 'whatsapp', name: 'WhatsApp lead alerts', ok: !!(env.WHATSAPP_TOKEN && (env.WHATSAPP_PHONE_NUMBER_ID || env.WHATSAPP_PHONE_ID)), hint: 'WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID (Meta Cloud API). For WhatsApp login OTP also set OTP_MODE=whatsapp and WHATSAPP_OTP_TEMPLATE' },
-      { key: 'email', name: 'Email alerts (SMTP)', ok: !!(env.SMTP_PASS && (env.SMTP_HOST || env.SMTP_USER)), hint: 'Gmail: set SMTP_USER (your Gmail) and SMTP_PASS (16-letter App Password) in Render Dashboard -> Environment' },
+      { key: 'email', name: 'Email alerts (SMTP)', ok: !!((env.SMTP_PASS || sSmtp.pass) && (env.SMTP_HOST || env.SMTP_USER || sSmtp.user)), hint: 'Gmail: set SMTP_USER (your Gmail) and SMTP_PASS (16-letter App Password) in Settings or Render Dashboard' },
       { key: 'jwt', name: 'Secure JWT secret', ok: !!env.JWT_SECRET && !/change|dev-secret/.test(env.JWT_SECRET), hint: 'Set a long random JWT_SECRET' },
     ],
   });
@@ -267,11 +268,20 @@ router.post('/system/task/:id', (req, res) => {
   const result = t.run(); db.log('task_' + req.params.id, req.user._id, { result }); res.json({ message: result });
 });
 router.post('/system/test-email', async (req, res) => {
-  const m = require('../util').getMailer(); const to = req.body.to || process.env.ADMIN_EMAIL || process.env.SMTP_USER;
-  if (!m) return res.status(400).json({ message: 'SMTP is not configured — please set SMTP_USER and SMTP_PASS (16-letter Google App Password) in Render Dashboard -> Environment' });
+  const sSmtp = db.settings()?.smtp || {};
+  const m = require('../util').getMailer();
+  const to = req.body.to || process.env.ADMIN_EMAIL || sSmtp.adminEmail || process.env.SMTP_USER || sSmtp.user;
+  if (!m) return res.status(400).json({ message: 'SMTP is not configured — please set Gmail & 16-letter App Password in Settings -> Email & SMTP or Render Dashboard' });
   if (!to) return res.status(400).json({ message: 'Enter a valid recipient email address' });
-  try { await m.sendMail({ from: process.env.MAIL_FROM || process.env.SMTP_USER, to, subject: 'Tap2Bizz test email', text: 'SMTP is working 🎉' }); res.json({ message: `Test email sent to ${to}` }); }
-  catch (e) { res.status(500).json({ message: e.message }); }
+  try {
+    const from = process.env.MAIL_FROM || sSmtp.from || process.env.SMTP_USER || sSmtp.user;
+    await m.sendMail({ from, to, subject: 'Tap2Bizz test email', text: 'SMTP is working 🎉' });
+    res.json({ message: `Test email sent to ${to}` });
+  }
+  catch (e) {
+    console.error('[mail] test email error:', e.message);
+    res.status(500).json({ message: `SMTP error: ${e.message}` });
+  }
 });
 router.get('/system/backup', (req, res) => {
   const out = { exportedAt: new Date().toISOString(), settings: db.settings() };
@@ -388,7 +398,17 @@ for (const c of ['offers', 'blogs', 'videos']) {
 }
 
 // ---- site settings (homepage text, stats, legal pages, social links) ----
-router.get('/settings', (req, res) => res.json(db.settings()));
+router.get('/settings', (req, res) => {
+  const s = { ...db.settings() };
+  if (s.smtp) {
+    s.smtp = {
+      ...s.smtp,
+      pass: s.smtp.pass ? '••••••••••••••••' : '',
+      isConfigured: !!(s.smtp.pass && (s.smtp.user || s.smtp.host)),
+    };
+  }
+  res.json(s);
+});
 const strList = (v, max, len) => { const a = (Array.isArray(v) ? v : String(v || '').split(',')).map((x) => String(x).replace(/[\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, len)).filter(Boolean); const seen = new Set(); return a.filter((x) => { const k = x.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, max); };
 router.put('/settings', (req, res) => {
   const b = { ...req.body }; delete b._id;
@@ -404,6 +424,20 @@ router.put('/settings', (req, res) => {
   for (const k of ['social', 'apps']) if (b[k] !== undefined) {
     if (typeof b[k] !== 'object' || b[k] === null) return res.status(400).json({ message: `Invalid ${k}` });
     for (const [n, u] of Object.entries(b[k])) { const v = String(u || '').trim(); if (v && v !== '#' && !/^https?:\/\/[^\s]+$/i.test(v)) return res.status(400).json({ message: `${n}: enter a full link starting with https://` }); b[k][n] = v; }
+  }
+  if (b.smtp !== undefined) {
+    if (typeof b.smtp !== 'object' || b.smtp === null) return res.status(400).json({ message: 'Invalid SMTP configuration' });
+    const curSmtp = (db.settings().smtp || {});
+    const cleanPass = b.smtp.pass ? String(b.smtp.pass).replace(/\s+/g, '').trim() : '';
+    b.smtp = {
+      user: String(b.smtp.user ?? curSmtp.user ?? '').trim().slice(0, 120),
+      pass: (cleanPass && !cleanPass.includes('•') && cleanPass !== '********') ? cleanPass.slice(0, 100) : (curSmtp.pass || ''),
+      from: String(b.smtp.from ?? curSmtp.from ?? '').trim().slice(0, 120),
+      adminEmail: String(b.smtp.adminEmail ?? curSmtp.adminEmail ?? '').trim().slice(0, 120),
+      host: String(b.smtp.host ?? curSmtp.host ?? '').trim().slice(0, 120),
+      port: Number(b.smtp.port) || curSmtp.port || 465,
+    };
+    require('../util').resetMailer();
   }
   res.json(db.setSettings(b));
 });

@@ -118,22 +118,26 @@ function parseJSON(v, fallback) { if (v == null || v === '') return fallback; if
 
 // Email via SMTP (set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM, ADMIN_EMAIL). Falls back to in-app log.
 let mailer = null;
+function resetMailer() { mailer = null; }
 function getMailer() {
   if (mailer !== null) return mailer;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  if (!pass || (!process.env.SMTP_HOST && !user)) return (mailer = false);
+  const s = db.settings()?.smtp || {};
+  const user = process.env.SMTP_USER || s.user;
+  const pass = process.env.SMTP_PASS || s.pass;
+  const host = process.env.SMTP_HOST || s.host;
+  const port = process.env.SMTP_PORT || s.port;
+  if (!pass || (!host && !user)) return (mailer = false);
   try {
-    if (!process.env.SMTP_HOST || process.env.SMTP_HOST === 'smtp.gmail.com' || (user && user.endsWith('@gmail.com'))) {
+    if (!host || host === 'smtp.gmail.com' || (user && user.endsWith('@gmail.com'))) {
       mailer = require('nodemailer').createTransport({
         service: 'gmail',
         auth: { user, pass: pass.replace(/\s+/g, '') }
       });
     } else {
       mailer = require('nodemailer').createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT || 465),
-        secure: Number(process.env.SMTP_PORT || 465) === 465,
+        host,
+        port: Number(port || 465),
+        secure: Number(port || 465) === 465,
         auth: { user, pass: pass.replace(/\s+/g, '') }
       });
     }
@@ -144,16 +148,18 @@ const emailHtml = (title, message) => `<div style="font-family:Arial,sans-serif;
   <div style="background:#0055FF;color:#fff;padding:18px 24px;font-size:20px;font-weight:bold">Tap<span style="color:#FF6600">2</span>Bizz</div>
   <div style="padding:24px"><h2 style="margin:0 0 12px;color:#0b1b3f">${title}</h2><p style="color:#374151;line-height:1.6">${message}</p>
   <a href="${(process.env.FRONTEND_URL || '').split(',')[0]}/vendor/dashboard" style="display:inline-block;margin-top:16px;background:#FF6600;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Open dashboard</a></div>
-  <div style="background:#f9fafb;color:#9ca3af;font-size:12px;padding:12px 24px">Grievance: suhantudupi@gmail.com</div></div>`;
+  <div style="background:#f9fafb;color:#9ca3af;font-size:12px;padding:12px 24px">Tap2Bizz Alerts</div></div>`;
 function notify(userId, title, message, channel = 'email') {
   const u = userId && db.get('users', userId);
+  const s = db.settings()?.smtp || {};
   // vendors log in by mobile only, so fall back to the e-mail on their business listing
   const bizMail = u && db.find('businesses', (b) => b.ownerId === u._id && b.contact?.email)[0]?.contact.email;
-  const to = channel === 'inbox' ? (process.env.ADMIN_EMAIL || process.env.SMTP_USER) : (u?.email || bizMail);
+  const to = channel === 'inbox' ? (process.env.ADMIN_EMAIL || s.adminEmail || process.env.SMTP_USER || s.user) : (u?.email || bizMail);
   const n = db.insert('notifications', { userId, to: to || u?.phone, title, message, channel, sent: false }, 'ntf');
   const m = getMailer();
   if (m && to && (channel === 'email' || channel === 'inbox')) {
-    m.sendMail({ from: process.env.MAIL_FROM || process.env.SMTP_USER, to, subject: `Tap2Bizz: ${title}`, html: emailHtml(title, message) })
+    const from = process.env.MAIL_FROM || s.from || process.env.SMTP_USER || s.user;
+    m.sendMail({ from, to, subject: `Tap2Bizz: ${title}`, html: emailHtml(title, message) })
       .then(() => db.update('notifications', n._id, { sent: true })).catch((e) => db.update('notifications', n._id, { error: e.message }));
   }
   console.log(`[notify:${channel}] -> ${to || u?.phone || 'admin'}: ${title}`);
@@ -207,4 +213,4 @@ async function sendWhatsAppOtp(to, code) {
   return waPost({ to: '91' + to, type: 'text', text: { body: `Your Tap2Bizz login OTP is ${code}. Valid for 5 minutes. Do not share it with anyone.` } });
 }
 
-module.exports = { discountFields, prices, blogCats, sendWhatsApp, sendWhatsAppOtp, waCfg,  hasBooster, cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };
+module.exports = { resetMailer, discountFields, prices, blogCats, sendWhatsApp, sendWhatsAppOtp, waCfg,  hasBooster, cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };
