@@ -14,7 +14,6 @@ router.post('/order', async (req, res) => {
     if (!features().premiumUpgrade) return res.status(403).json({ message: 'Premium upgrades are currently disabled' });
     const b = db.get('businesses', businessId);
     if (!b || b.ownerId !== req.user._id) return res.status(400).json({ message: 'Invalid listing' });
-    if (b.status !== 'approved') return res.status(400).json({ message: 'Listing must be approved by admin before upgrading' });
     amount = require('../util').prices().premium;
   } else if (purpose === 'banner_ad') {
     const a = db.get('ads', adId);
