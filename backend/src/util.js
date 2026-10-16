@@ -144,6 +144,48 @@ function getMailer() {
   } catch (e) { console.error('[mail] init failed', e.message); mailer = false; }
   return mailer;
 }
+
+async function sendEmail({ to, subject, html, text }) {
+  const s = db.settings()?.smtp || {};
+  const from = process.env.MAIL_FROM || s.from || process.env.SMTP_USER || s.user || 'suhantudupi@gmail.com';
+
+  // 1. Google Apps Script Webhook / Custom HTTPS Webhook (never blocked by Render free tier)
+  const webhookUrl = process.env.MAIL_WEBHOOK_URL || s.webhookUrl;
+  if (webhookUrl && /^https?:\/\//i.test(webhookUrl)) {
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, subject, html: html || text, text: text || html, from }),
+    });
+    if (!res.ok) throw new Error(`Webhook error (${res.status})`);
+    return { ok: true, via: 'webhook' };
+  }
+
+  // 2. Brevo API (HTTP port 443, free 300 emails/day, never blocked by cloud firewalls)
+  const brevoKey = process.env.BREVO_API_KEY || s.brevoKey;
+  if (brevoKey) {
+    const cleanFrom = from.includes('<') ? from.replace(/.*<([^>]+)>.*/, '$1') : from;
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': brevoKey, 'Content-Type': 'application/json', 'accept': 'application/json' },
+      body: JSON.stringify({
+        sender: { name: 'Tap2Bizz', email: cleanFrom },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html || text,
+      }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(d.message || `Brevo error (${res.status})`);
+    return { ok: true, via: 'brevo' };
+  }
+
+  // 3. Standard SMTP via Nodemailer
+  const m = getMailer();
+  if (!m) throw new Error('SMTP is not configured — please set credentials in Settings or Render');
+  return m.sendMail({ from, to, subject, html, text });
+}
+
 const emailHtml = (title, message) => `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
   <div style="background:#0055FF;color:#fff;padding:18px 24px;font-size:20px;font-weight:bold">Tap<span style="color:#FF6600">2</span>Bizz</div>
   <div style="padding:24px"><h2 style="margin:0 0 12px;color:#0b1b3f">${title}</h2><p style="color:#374151;line-height:1.6">${message}</p>
@@ -156,11 +198,13 @@ function notify(userId, title, message, channel = 'email') {
   const bizMail = u && db.find('businesses', (b) => b.ownerId === u._id && b.contact?.email)[0]?.contact.email;
   const to = channel === 'inbox' ? (process.env.ADMIN_EMAIL || s.adminEmail || process.env.SMTP_USER || s.user) : (u?.email || bizMail);
   const n = db.insert('notifications', { userId, to: to || u?.phone, title, message, channel, sent: false }, 'ntf');
-  const m = getMailer();
-  if (m && to && (channel === 'email' || channel === 'inbox')) {
-    const from = process.env.MAIL_FROM || s.from || process.env.SMTP_USER || s.user;
-    m.sendMail({ from, to, subject: `Tap2Bizz: ${title}`, html: emailHtml(title, message) })
-      .then(() => db.update('notifications', n._id, { sent: true })).catch((e) => db.update('notifications', n._id, { error: e.message }));
+  if (to && (channel === 'email' || channel === 'inbox')) {
+    sendEmail({ to, subject: `Tap2Bizz: ${title}`, html: emailHtml(title, message), text: message })
+      .then(() => db.update('notifications', n._id, { sent: true }))
+      .catch((e) => {
+        console.error('[notify:error]', e.message);
+        db.update('notifications', n._id, { error: e.message });
+      });
   }
   console.log(`[notify:${channel}] -> ${to || u?.phone || 'admin'}: ${title}`);
 }
@@ -213,4 +257,4 @@ async function sendWhatsAppOtp(to, code) {
   return waPost({ to: '91' + to, type: 'text', text: { body: `Your Tap2Bizz login OTP is ${code}. Valid for 5 minutes. Do not share it with anyone.` } });
 }
 
-module.exports = { resetMailer, discountFields, prices, blogCats, sendWhatsApp, sendWhatsAppOtp, waCfg,  hasBooster, cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };
+module.exports = { sendEmail, resetMailer, discountFields, prices, blogCats, sendWhatsApp, sendWhatsAppOtp, waCfg,  hasBooster, cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };

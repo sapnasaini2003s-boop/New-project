@@ -257,7 +257,7 @@ router.get('/system', (req, res) => {
       { key: 'otp', name: 'Login OTP (Firebase SMS / WhatsApp)', ok: (env.OTP_MODE === 'firebase' && !!env.FIREBASE_API_KEY) || env.OTP_MODE === 'whatsapp', hint: 'OTP_MODE=firebase + FIREBASE_API_KEY (backend) and NEXT_PUBLIC_FIREBASE_* (frontend). Now: test OTP 123456' },
       { key: 'razorpay', name: 'Razorpay payments', ok: !!(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET), hint: 'RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET. Now: test/mock payments' },
       { key: 'whatsapp', name: 'WhatsApp lead alerts', ok: !!(env.WHATSAPP_TOKEN && (env.WHATSAPP_PHONE_NUMBER_ID || env.WHATSAPP_PHONE_ID)), hint: 'WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID (Meta Cloud API). For WhatsApp login OTP also set OTP_MODE=whatsapp and WHATSAPP_OTP_TEMPLATE' },
-      { key: 'email', name: 'Email alerts (SMTP)', ok: !!((env.SMTP_PASS || sSmtp.pass) && (env.SMTP_HOST || env.SMTP_USER || sSmtp.user)), hint: 'Gmail: set SMTP_USER (your Gmail) and SMTP_PASS (16-letter App Password) in Settings or Render Dashboard' },
+      { key: 'email', name: 'Email alerts (SMTP)', ok: !!((env.SMTP_PASS || sSmtp.pass || sSmtp.webhookUrl || sSmtp.brevoKey || env.MAIL_WEBHOOK_URL || env.BREVO_API_KEY) && (env.SMTP_HOST || env.SMTP_USER || sSmtp.user || sSmtp.webhookUrl || sSmtp.brevoKey || env.MAIL_WEBHOOK_URL || env.BREVO_API_KEY)), hint: 'Gmail: set SMTP_USER (your Gmail) and SMTP_PASS (16-letter App Password) in Settings or Render Dashboard' },
       { key: 'jwt', name: 'Secure JWT secret', ok: !!env.JWT_SECRET && !/change|dev-secret/.test(env.JWT_SECRET), hint: 'Set a long random JWT_SECRET' },
     ],
   });
@@ -269,18 +269,21 @@ router.post('/system/task/:id', (req, res) => {
 });
 router.post('/system/test-email', async (req, res) => {
   const sSmtp = db.settings()?.smtp || {};
-  const m = require('../util').getMailer();
   const to = req.body.to || process.env.ADMIN_EMAIL || sSmtp.adminEmail || process.env.SMTP_USER || sSmtp.user;
-  if (!m) return res.status(400).json({ message: 'SMTP is not configured — please set Gmail & 16-letter App Password in Settings -> Email & SMTP or Render Dashboard' });
   if (!to) return res.status(400).json({ message: 'Enter a valid recipient email address' });
   try {
-    const from = process.env.MAIL_FROM || sSmtp.from || process.env.SMTP_USER || sSmtp.user;
-    await m.sendMail({ from, to, subject: 'Tap2Bizz test email', text: 'SMTP is working 🎉' });
-    res.json({ message: `Test email sent to ${to}` });
+    const { sendEmail } = require('../util');
+    const r = await sendEmail({
+      to,
+      subject: 'Tap2Bizz test email',
+      text: 'Email alerts are working 🎉',
+      html: '<div style="font-family:sans-serif;max-width:500px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;"><h2 style="color:#0055ff;margin-top:0">Tap2Bizz</h2><p>Your email system is successfully working! 🎉</p><p style="color:#64748b;font-size:12px">Sent from Tap2Bizz Control Centre</p></div>'
+    });
+    res.json({ message: `Test email sent successfully to ${to}${r.via ? ` (via ${r.via})` : ''}` });
   }
   catch (e) {
     console.error('[mail] test email error:', e.message);
-    res.status(500).json({ message: `SMTP error: ${e.message}` });
+    res.status(500).json({ message: `Email error: ${e.message}` });
   }
 });
 router.get('/system/backup', (req, res) => {
@@ -436,6 +439,8 @@ router.put('/settings', (req, res) => {
       adminEmail: String(b.smtp.adminEmail ?? curSmtp.adminEmail ?? '').trim().slice(0, 120),
       host: String(b.smtp.host ?? curSmtp.host ?? '').trim().slice(0, 120),
       port: Number(b.smtp.port) || curSmtp.port || 465,
+      webhookUrl: b.smtp.webhookUrl !== undefined ? String(b.smtp.webhookUrl).trim().slice(0, 400) : (curSmtp.webhookUrl || ''),
+      brevoKey: b.smtp.brevoKey !== undefined ? String(b.smtp.brevoKey).trim().slice(0, 200) : (curSmtp.brevoKey || ''),
     };
     require('../util').resetMailer();
   }
