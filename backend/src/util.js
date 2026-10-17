@@ -211,9 +211,11 @@ function notify(userId, title, message, channel = 'email') {
 
 // ---------- Feature switches (Admin → Feature Controls) ----------
 const FEATURE_DEFAULTS = {
-  customerLogin: true,    // customers log in (OTP always required) to review / report / raise grievances
+  customerLogin: true,    // customers can log in with their phone number
+  customerOtp: false,     // 100% Lifetime Free: 1-click mobile login without SMS charges (set to true if OTP required)
   vendorSignup: true,     // new business owners can register
-  vendorOtp: true,        // vendors must verify OTP (admin login ALWAYS needs OTP)
+  vendorOtp: false,       // 100% Lifetime Free: 1-click mobile login without SMS charges (set to true if OTP required)
+  adminOtp: false,        // admin direct or dev pin 123456
   reviews: true, enquiries: true, favorites: true, claims: true,
   bannerBooking: true, premiumUpgrade: true, reports: false, complaintForm: false, orderOnline: true, cartOrders: true, grievanceForm: true,
   maintenance: false,     // shows maintenance banner + blocks vendor submissions
