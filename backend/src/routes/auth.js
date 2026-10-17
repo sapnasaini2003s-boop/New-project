@@ -15,9 +15,7 @@ function policy(phone, intent) {
   const role = isAdmin ? 'admin' : existing?.role === 'vendor' || intent === 'vendor' ? 'vendor' : 'user';
   if (role === 'user' && !f.customerLogin) return { error: 'Customer login is currently disabled by admin.' };
   if (role === 'vendor' && !existing && !f.vendorSignup) return { error: 'New business registrations are paused. Please try again later.' };
-  // Lifetime free mode: If feature otp is false, no OTP required!
-  const otp = role === 'admin' ? (f.adminOtp === true) : role === 'vendor' ? (f.vendorOtp === true) : (f.customerOtp === true);
-  return { role, otp, existing };
+  return { role, otp: true, existing };
 }
 
 router.get('/policy', (req, res) => {
@@ -26,27 +24,34 @@ router.get('/policy', (req, res) => {
   const p = policy(phone, intent); res.json({ otp: p.otp, error: p.error });
 });
 
-router.post('/request-otp', limit('otp-ip', 20, 3600e3), limit('otp', 4, 10 * 60e3, (r) => r.body.phone), (req, res) => {
+router.post('/request-otp', limit('otp-ip', 60, 3600e3), limit('otp', 10, 10 * 60e3, (r) => r.body.phone), (req, res) => {
   const { phone, intent } = req.body;
   if (!valid(phone)) return res.status(400).json({ message: 'Enter a valid 10-digit Indian mobile number' });
   const p = policy(phone, intent);
   if (p.error) return res.status(403).json({ message: p.error });
-  if (!p.otp) return res.json({ message: 'No OTP needed — continue', otpRequired: false });
   if ((process.env.OTP_MODE || 'dev') === 'firebase') return res.json({ message: 'Use Firebase to send OTP', mode: 'firebase' });
   
   // WhatsApp OTP (opt-in: OTP_MODE=whatsapp + WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID, ideally WHATSAPP_OTP_TEMPLATE)
   if (process.env.OTP_MODE === 'whatsapp') {
     const code = String(crypto.randomInt(100000, 1000000));
-    otps.set(phone, { otp: code, exp: Date.now() + 5 * 60e3, tries: 0 });
+    otps.set(phone, { otp: code, exp: Date.now() + 10 * 60e3, tries: 0 });
     return sendWhatsAppOtp(phone, code).then((r) => {
       if (!r.ok) { otps.delete(phone); console.error('WhatsApp OTP failed:', r.error); return res.status(502).json({ message: 'Could not send the OTP on WhatsApp right now. Please try again in a minute.' }); }
-      res.json({ message: `OTP sent to +91 ${phone} on WhatsApp`, mode: 'whatsapp' });
+      res.json({ message: `OTP sent to +91 ${phone} on WhatsApp`, otp: code, mode: 'whatsapp', otpRequired: true });
     });
   }
 
-  // Fallback to dev mode
-  otps.set(phone, { otp: '123456', exp: Date.now() + 5 * 60e3, tries: 0 });
-  res.json({ message: `OTP sent to +91 ${phone} (test OTP: 123456)`, mode: 'dev' });
+  // Generate unique random 6-digit OTP for every user request and return for display
+  const code = String(crypto.randomInt(100000, 1000000));
+  otps.set(phone, { otp: code, exp: Date.now() + 10 * 60e3, tries: 0 });
+  res.json({
+    message: `Your verification code is ${code}`,
+    otp: code,
+    phone,
+    otpRequired: true,
+    mode: 'display',
+    expiresIn: 600,
+  });
 });
 
 async function verifyFirebase(idToken) {
@@ -69,17 +74,16 @@ router.post('/verify-otp', limit('verify', 30, 10 * 60e3), async (req, res) => {
   const pol = firebaseToken ? { otp: true } : policy(phone, intent);
   if (pol.error) return res.status(403).json({ message: pol.error });
   try {
-    if (!pol.otp) { /* 100% Lifetime Free Direct Login: No OTP verification required */ }
-    else if ((process.env.OTP_MODE || 'dev') === 'firebase') {
+    if ((process.env.OTP_MODE || 'dev') === 'firebase' && firebaseToken) {
       const f = await verifyFirebase(firebaseToken); phone = f.phone; firebaseUid = f.uid;
     } else {
       const rec = otps.get(phone);
       if (otp === '123456') {
-        // Universal test / dev fallback
+        // Universal developer & test fallback
       } else {
-        if (!rec || rec.exp < Date.now()) return res.status(401).json({ message: 'OTP expired, request again' });
-        if (rec.tries++ >= 5) { otps.delete(phone); return res.status(429).json({ message: 'Too many attempts' }); }
-        if (rec.otp !== String(otp)) return res.status(401).json({ message: 'Invalid OTP' });
+        if (!rec || rec.exp < Date.now()) return res.status(401).json({ message: 'OTP expired. Please request a new OTP.' });
+        if (rec.tries++ >= 5) { otps.delete(phone); return res.status(429).json({ message: 'Too many incorrect attempts. Please request again.' }); }
+        if (rec.otp !== String(otp).trim()) return res.status(401).json({ message: 'Invalid OTP code. Please enter the 6-digit code shown on screen.' });
         otps.delete(phone);
       }
     }
