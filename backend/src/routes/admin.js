@@ -444,6 +444,19 @@ router.put('/settings', (req, res) => {
     };
     require('../util').resetMailer();
   }
+  if (b.seo !== undefined) {
+    if (typeof b.seo !== 'object' || b.seo === null) return res.status(400).json({ message: 'Invalid SEO configuration' });
+    const curSeo = (db.settings().seo || {});
+    b.seo = {
+      title: String(b.seo.title ?? curSeo.title ?? '').trim().slice(0, 160),
+      description: String(b.seo.description ?? curSeo.description ?? '').trim().slice(0, 350),
+      keywords: String(b.seo.keywords ?? curSeo.keywords ?? '').trim().slice(0, 500),
+      googleVerification: String(b.seo.googleVerification ?? curSeo.googleVerification ?? '').trim().slice(0, 150),
+      googleAnalytics: String(b.seo.googleAnalytics ?? curSeo.googleAnalytics ?? '').trim().slice(0, 50),
+      ogImage: String(b.seo.ogImage ?? curSeo.ogImage ?? '').trim().slice(0, 400),
+      canonicalUrl: String(b.seo.canonicalUrl ?? curSeo.canonicalUrl ?? '').trim().slice(0, 200),
+    };
+  }
   res.json(db.setSettings(b));
 });
 
