@@ -84,7 +84,14 @@ async function init() {
       // Load docs
       const { rows } = await pgPool.query('SELECT c, doc FROM docs');
       for (const row of rows) {
-        if (state[row.c]) state[row.c].push(row.doc);
+        if (state[row.c]) {
+          if (row.c === 'categories' && row.doc && !Array.isArray(row.doc.subs)) {
+            row.doc.subs = typeof row.doc.subs === 'string' && row.doc.subs.trim()
+              ? row.doc.subs.split(',').map((s) => s.trim()).filter(Boolean)
+              : [];
+          }
+          state[row.c].push(row.doc);
+        }
       }
       
       // Load settings
@@ -114,6 +121,13 @@ async function init() {
     state = blank(); 
     Object.assign(state, raw); 
     for (const c of COLLECTIONS) state[c] = state[c] || []; 
+    (state.categories || []).forEach((cat) => {
+      if (cat && !Array.isArray(cat.subs)) {
+        cat.subs = typeof cat.subs === 'string' && cat.subs.trim()
+          ? cat.subs.split(',').map((s) => s.trim()).filter(Boolean)
+          : [];
+      }
+    });
     state.settings = state.settings || {}; 
   } catch { 
     state = blank(); 

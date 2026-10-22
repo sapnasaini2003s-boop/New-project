@@ -366,10 +366,14 @@ router.get('/export/:what', (req, res) => {
 router.post('/categories', (req, res) => {
   const { name, icon, subs, color, order } = req.body;
   const slug = (req.body.slug || name).toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-  res.status(201).json(db.insert('categories', { name, slug, icon, color, order: Number(order) || 0, subs: Array.isArray(subs) ? subs : String(subs || '').split(',').map((s) => s.trim()).filter(Boolean), active: true }, 'cat'));
+  const cleanSubs = Array.isArray(subs) ? subs : String(subs || '').split(',').map((s) => s.trim()).filter(Boolean);
+  res.status(201).json(db.insert('categories', { name, slug, icon, color, order: Number(order) || 0, subs: cleanSubs, active: true }, 'cat'));
 });
 router.put('/categories/:id', (req, res) => {
-  const p = { ...req.body }; if (p.subs && !Array.isArray(p.subs)) p.subs = String(p.subs).split(',').map((s) => s.trim()).filter(Boolean);
+  const p = { ...req.body };
+  if (p.subs !== undefined) {
+    p.subs = Array.isArray(p.subs) ? p.subs : String(p.subs || '').split(',').map((s) => s.trim()).filter(Boolean);
+  }
   res.json(db.update('categories', req.params.id, p));
 });
 router.delete('/categories/:id', (req, res) => res.json({ ok: db.remove('categories', req.params.id) }));

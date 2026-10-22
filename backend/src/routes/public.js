@@ -17,7 +17,20 @@ const trackSearch = (cat) => {
 // Public config: feature switches the frontend uses to show/hide things
 router.get('/config', (req, res) => { const s = db.settings(); res.json({ features: features(), siteName: s.siteName, cities: s.cities, announcement: s.announcement, social: s.social, apps: s.apps, seo: s.seo || {} }); });
 
-router.get('/categories', (req, res) => res.json(db.all('categories').filter((c) => c.active !== false).sort((a, b) => (a.order || 0) - (b.order || 0))));
+router.get('/categories', (req, res) => {
+  const cats = db.all('categories')
+    .filter((c) => c.active !== false)
+    .sort((a, b) => (a.order || 0) - (b.order || 0))
+    .map((c) => ({
+      ...c,
+      subs: Array.isArray(c.subs)
+        ? c.subs
+        : typeof c.subs === 'string' && c.subs.trim()
+          ? c.subs.split(',').map((s) => s.trim()).filter(Boolean)
+          : [],
+    }));
+  res.json(cats);
+});
 
 const withThumb = (a) => { const b = a.businessId ? db.get('businesses', a.businessId) : null; return { ...a, thumb: a.thumb || (b && (b.profileImage || b.image)) || null }; };
 router.get('/ads/category', (req, res) => {
