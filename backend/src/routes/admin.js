@@ -267,6 +267,26 @@ router.post('/system/task/:id', (req, res) => {
   const t = require('../migrations').TASKS[req.params.id]; if (!t) return res.status(404).json({ message: 'Unknown task' });
   const result = t.run(); db.log('task_' + req.params.id, req.user._id, { result }); res.json({ message: result });
 });
+router.get('/system/sms-status', async (req, res) => {
+  const { getSmsBalance, smsCfg } = require('../util');
+  const cfg = smsCfg();
+  const bal = await getSmsBalance();
+  res.json({
+    configured: !!cfg.apiKey,
+    senderId: cfg.senderId,
+    entityId: cfg.entityId,
+    templateId: cfg.templateId,
+    balance: bal.balance || null,
+    error: bal.error || null,
+  });
+});
+router.post('/system/test-sms', async (req, res) => {
+  const { sendSmsGatewayHubOtp } = require('../util');
+  const to = req.body.to || req.user?.phone || '9999999999';
+  const r = await sendSmsGatewayHubOtp(to, '123456');
+  if (r.ok) res.json({ message: 'Test SMS sent successfully to +91 ' + to, jobId: r.jobId });
+  else res.status(400).json({ message: 'SMS error: ' + r.error, code: r.code });
+});
 router.post('/system/test-email', async (req, res) => {
   const sSmtp = db.settings()?.smtp || {};
   const to = req.body.to || process.env.ADMIN_EMAIL || sSmtp.adminEmail || process.env.SMTP_USER || sSmtp.user;
@@ -447,6 +467,17 @@ router.put('/settings', (req, res) => {
       brevoKey: b.smtp.brevoKey !== undefined ? String(b.smtp.brevoKey).trim().slice(0, 200) : (curSmtp.brevoKey || ''),
     };
     require('../util').resetMailer();
+  }
+  if (b.sms !== undefined) {
+    if (typeof b.sms !== 'object' || b.sms === null) return res.status(400).json({ message: 'Invalid SMS configuration' });
+    const curSms = (db.settings().sms || {});
+    b.sms = {
+      apiKey: String(b.sms.apiKey ?? curSms.apiKey ?? '').trim().slice(0, 100),
+      senderId: String(b.sms.senderId ?? curSms.senderId ?? '').trim().toUpperCase().slice(0, 10),
+      entityId: String(b.sms.entityId ?? curSms.entityId ?? '').trim().slice(0, 40),
+      templateId: String(b.sms.templateId ?? curSms.templateId ?? '').trim().slice(0, 40),
+      templateText: String(b.sms.templateText ?? curSms.templateText ?? '').trim().slice(0, 300),
+    };
   }
   if (b.seo !== undefined) {
     if (typeof b.seo !== 'object' || b.seo === null) return res.status(400).json({ message: 'Invalid SEO configuration' });

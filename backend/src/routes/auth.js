@@ -24,7 +24,7 @@ router.get('/policy', (req, res) => {
   const p = policy(phone, intent); res.json({ otp: p.otp, error: p.error });
 });
 
-router.post('/request-otp', limit('otp-ip', 60, 3600e3), limit('otp', 10, 10 * 60e3, (r) => r.body.phone), (req, res) => {
+router.post('/request-otp', limit('otp-ip', 60, 3600e3), limit('otp', 10, 10 * 60e3, (r) => r.body.phone), async (req, res) => {
   const { phone, intent } = req.body;
   if (!valid(phone)) return res.status(400).json({ message: 'Enter a valid 10-digit Indian mobile number' });
   const p = policy(phone, intent);
@@ -41,9 +41,42 @@ router.post('/request-otp', limit('otp-ip', 60, 3600e3), limit('otp', 10, 10 * 6
     });
   }
 
-  // Generate unique random 6-digit OTP for every user request and return for display
+  // Generate unique random 6-digit OTP for every user request
   const code = String(crypto.randomInt(100000, 1000000));
   otps.set(phone, { otp: code, exp: Date.now() + 10 * 60e3, tries: 0 });
+
+  // SMSGatewayHub (SMS OTP) delivery
+  const { smsCfg, sendSmsGatewayHubOtp } = require('../util');
+  const sc = smsCfg();
+  if (sc.apiKey) {
+    try {
+      const smsRes = await sendSmsGatewayHubOtp(phone, code);
+      if (smsRes.ok) {
+        return res.json({
+          message: `OTP sent via SMS to +91 ${phone}`,
+          phone,
+          otpRequired: true,
+          mode: 'sms',
+          expiresIn: 600,
+        });
+      } else {
+        console.warn(`[SMSGatewayHub] SMS delivery pending DLT: ${smsRes.error} (Code: ${smsRes.code || 'ERR'}). Showing fallback verification code.`);
+        return res.json({
+          message: `Your verification code is ${code}`,
+          otp: code,
+          phone,
+          otpRequired: true,
+          mode: 'display',
+          expiresIn: 600,
+          smsStatus: 'pending_dlt',
+          smsError: smsRes.error,
+        });
+      }
+    } catch (err) {
+      console.error('[SMSGatewayHub] Error sending SMS:', err.message);
+    }
+  }
+
   res.json({
     message: `Your verification code is ${code}`,
     otp: code,

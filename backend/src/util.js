@@ -259,4 +259,76 @@ async function sendWhatsAppOtp(to, code) {
   return waPost({ to: '91' + to, type: 'text', text: { body: `Your Tap2Bizz login OTP is ${code}. Valid for 5 minutes. Do not share it with anyone.` } });
 }
 
-module.exports = { sendEmail, resetMailer, discountFields, prices, blogCats, sendWhatsApp, sendWhatsAppOtp, waCfg,  hasBooster, cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };
+// ---- SMSGatewayHub (SMS OTP) helpers ----
+const smsCfg = () => {
+  const s = db.settings()?.sms || {};
+  return {
+    apiKey: process.env.SMSGATEWAYHUB_API_KEY || s.apiKey || '',
+    senderId: process.env.SMSGATEWAYHUB_SENDER_ID || s.senderId || '',
+    entityId: process.env.SMSGATEWAYHUB_ENTITY_ID || s.entityId || '',
+    templateId: process.env.SMSGATEWAYHUB_TEMPLATE_ID || s.templateId || '',
+    templateText: process.env.SMSGATEWAYHUB_TEMPLATE_TEXT || s.templateText || 'Your verification OTP is {#var#}. Valid for 10 minutes.',
+    channel: process.env.SMSGATEWAYHUB_CHANNEL || s.channel || '2',
+    route: process.env.SMSGATEWAYHUB_ROUTE || s.route || '1',
+  };
+};
+
+async function getSmsBalance() {
+  const cfg = smsCfg();
+  if (!cfg.apiKey) return { ok: false, error: 'API Key not configured' };
+  try {
+    const res = await fetch(`https://www.smsgatewayhub.com/api/mt/GetBalance?APIKey=${encodeURIComponent(cfg.apiKey)}`);
+    const data = await res.json();
+    return { ok: data.ErrorCode === '0', balance: data.Balance, error: data.ErrorMessage };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+async function sendSmsGatewayHubOtp(to, code) {
+  const cfg = smsCfg();
+  if (!cfg.apiKey) return { ok: false, error: 'SMSGatewayHub API Key is not configured' };
+  
+  const cleanPhone = String(to).replace(/\D/g, '').slice(-10);
+  if (cleanPhone.length !== 10) return { ok: false, error: 'Invalid 10-digit mobile number' };
+
+  let senderId = cfg.senderId;
+  if (!senderId) {
+    try {
+      const sRes = await fetch(`https://www.smsgatewayhub.com/api/mt/GetSenderId?APIKey=${encodeURIComponent(cfg.apiKey)}`);
+      const sData = await sRes.json();
+      if (sData?.Data?.[0]?.SenderId) senderId = sData.Data[0].SenderId;
+    } catch {}
+  }
+
+  const msg = (cfg.templateText || 'Your verification OTP is {#var#}. Valid for 10 minutes.')
+    .replace(/\{#var#\}|\{#numeric#\}|\{OTP\}/gi, code);
+
+  const url = new URL('https://www.smsgatewayhub.com/api/mt/SendSMS');
+  url.searchParams.set('APIKey', cfg.apiKey);
+  url.searchParams.set('senderid', senderId || 'SMSGWH');
+  url.searchParams.set('channel', String(cfg.channel || '2'));
+  url.searchParams.set('DCS', '0');
+  url.searchParams.set('flashsms', '0');
+  url.searchParams.set('number', '91' + cleanPhone);
+  url.searchParams.set('text', msg);
+  url.searchParams.set('route', String(cfg.route || '1'));
+  if (cfg.entityId) url.searchParams.set('EntityId', cfg.entityId);
+  if (cfg.templateId) url.searchParams.set('dlttemplateid', cfg.templateId);
+
+  try {
+    const res = await fetch(url.toString());
+    const data = await res.json();
+    if (data.ErrorCode === '000') {
+      return { ok: true, jobId: data.JobId, messageData: data.MessageData };
+    } else {
+      console.error('[SMSGatewayHub:error]', data);
+      return { ok: false, error: data.ErrorMessage || 'Failed to send SMS', code: data.ErrorCode };
+    }
+  } catch (e) {
+    console.error('[SMSGatewayHub:network_error]', e.message);
+    return { ok: false, error: e.message };
+  }
+}
+
+module.exports = { sendEmail, resetMailer, discountFields, prices, blogCats, sendWhatsApp, sendWhatsAppOtp, waCfg, smsCfg, getSmsBalance, sendSmsGatewayHubOtp, hasBooster, cleanHours, getMailer, features, requireFeature, FEATURE_DEFAULTS, sign, auth, role, upload, fileUrl, sendStored, isPremium, publicBiz, pick, parseJSON, EDITABLE, notify, UP };
