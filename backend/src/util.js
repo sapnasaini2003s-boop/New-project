@@ -260,16 +260,17 @@ async function sendWhatsAppOtp(to, code) {
 }
 
 // ---- SMSGatewayHub (SMS OTP) helpers ----
+const DEFAULT_SMS_TEMPLATE = 'Your Tap2Bizz verification code is {#OTP#}. Do not share this code with anyone.-website- www.tap2bizz.com– Tap2Bizz';
 const smsCfg = () => {
   const s = db.settings()?.sms || {};
   return {
-    apiKey: process.env.SMSGATEWAYHUB_API_KEY || s.apiKey || '',
-    senderId: process.env.SMSGATEWAYHUB_SENDER_ID || s.senderId || '',
+    apiKey: process.env.SMSGATEWAYHUB_API_KEY || s.apiKey || 'Ylia6ns9wU63XuNfA55Mvw',
+    senderId: process.env.SMSGATEWAYHUB_SENDER_ID || s.senderId || 'Tap2bz',
     entityId: process.env.SMSGATEWAYHUB_ENTITY_ID || s.entityId || '',
     templateId: process.env.SMSGATEWAYHUB_TEMPLATE_ID || s.templateId || '',
-    templateText: process.env.SMSGATEWAYHUB_TEMPLATE_TEXT || s.templateText || 'Your verification OTP is {#var#}. Valid for 10 minutes.',
+    templateText: process.env.SMSGATEWAYHUB_TEMPLATE_TEXT || s.templateText || DEFAULT_SMS_TEMPLATE,
     channel: process.env.SMSGATEWAYHUB_CHANNEL || s.channel || '2',
-    route: process.env.SMSGATEWAYHUB_ROUTE || s.route || '1',
+    route: process.env.SMSGATEWAYHUB_ROUTE || s.route || '47',
   };
 };
 
@@ -302,7 +303,7 @@ async function sendSmsGatewayHubOtp(to, code) {
   }
 
   const msg = (cfg.templateText || 'Your verification OTP is {#var#}. Valid for 10 minutes.')
-    .replace(/\{#var#\}|\{#numeric#\}|\{OTP\}/gi, code);
+    .replace(/\{#OTP#\}|\{#var#\}|\{#numeric#\}|\{OTP\}|\b457\b/gi, code);
 
   const url = new URL('https://www.smsgatewayhub.com/api/mt/SendSMS');
   url.searchParams.set('APIKey', cfg.apiKey);

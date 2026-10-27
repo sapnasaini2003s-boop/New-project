@@ -132,7 +132,17 @@
       }
     }
   },
-  "users": [],
+  "users": [
+    {
+      "_id": "usr_b1a5e7bb84d3",
+      "createdAt": "2026-10-27T07:30:30.898Z",
+      "updatedAt": "2026-10-27T07:30:30.911Z",
+      "phone": "7892627796",
+      "name": "Prajwal Salian (Admin)",
+      "role": "admin",
+      "status": "approved"
+    }
+  ],
   "businesses": [
     {
       "_id": "biz_89430708c518",
@@ -653,5 +663,10 @@
   "reviews": [],
   "enquiries": [],
   "favorites": [],
-  "reports": []
+  "reports": [],
+  "boosters": [],
+  "boosterRequests": [],
+  "commissions": [],
+  "categoryLeads": [],
+  "orders": []
 }

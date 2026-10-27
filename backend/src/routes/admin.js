@@ -477,6 +477,7 @@ router.put('/settings', (req, res) => {
       entityId: String(b.sms.entityId ?? curSms.entityId ?? '').trim().slice(0, 40),
       templateId: String(b.sms.templateId ?? curSms.templateId ?? '').trim().slice(0, 40),
       templateText: String(b.sms.templateText ?? curSms.templateText ?? '').trim().slice(0, 300),
+      route: String(b.sms.route ?? curSms.route ?? '47').trim().slice(0, 10),
     };
   }
   if (b.seo !== undefined) {
